@@ -64,7 +64,7 @@ def main():
     
 
     # Initialize Ray
-    ray.init()
+    ray.init(include_dashboard=True)
 
     # Initialize and run the evaluation
     evaluator = SparseEvaluation(x, args.chunk_size,function=function)
