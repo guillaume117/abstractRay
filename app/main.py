@@ -67,7 +67,7 @@ def main():
     ray.init(include_dashboard=True)
 
     # Initialize and run the evaluation
-    evaluator = SparseEvaluation(x, args.chunk_size,function=function)
+    evaluator = SparseEvaluation(x, args.chunk_size,mask_coef = None ,function=function)
     global_sparse_tensor, function_sum = evaluator.evaluate_all_chunks(args.num_workers)
 
     ray.shutdown()
@@ -76,7 +76,7 @@ def main():
 
     # Print results
     print("Sparse Tensor:", global_sparse_tensor)
-    print("Function Sum:", function_sum)
+   
 
 if __name__ == "__main__":
     main()
