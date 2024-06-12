@@ -7,7 +7,7 @@ from typing import Callable
 device = torch.device("cpu")
 
 
-@ray.remote(num_cpus=2, memory=16*1024*1024*1024) 
+@ray.remote(num_cpus=4, memory=16*1024*1024*1024) 
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, global_start_index):
         self.x_chunk = x_chunk.coalesce()
