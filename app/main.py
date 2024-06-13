@@ -9,13 +9,15 @@ from  sparse_evaluation import SparseEvaluation
 import torch.nn as nn
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Sparse Evaluation with Ray")
-    parser.add_argument('--num_chanel',type=int, required=False,help='num_chanel')
-    parser.add_argument('--width',type=int, required=False,help='width')
-    parser.add_argument('--height',type=int, required=False,help='height')
-    parser.add_argument('--alpha',type=float, required=False,help='alpha')
-    parser.add_argument('--sparse_tensor' ,type=FloatTensor,required = False, help = 'A sparse tensor for evaluation of noise symbols')
-    parser.add_argument('--chunk_size', type=int, required=True, help='Chunk size for processing')
-    parser.add_argument('--num_workers', type=int, required=True, help='Number of Ray workers')
+    parser.add_argument('--num_chanel', type=int, default=3, help='Number of channels')
+    parser.add_argument('--width', type=int, default=224, help='Width of the input')
+    parser.add_argument('--height', type=int, default=224, help='Height of the input')
+    parser.add_argument('--chunk_size', type=int, default=500, help='Chunk size')
+    parser.add_argument('--num_worker', type=int, default=10, help='Number of workers')
+    parser.add_argument('--alpha', type=float, default=0.0001, help='Alpha value')
+
+
+
     parser.add_argument('--mask',type=FloatTensor,required = False,help = 'mask for applying approximation of precedent non linear layer')
     parser.add_argument('--function',type = callable, required= False, help = 'A callable from nn.linear')
 
@@ -68,7 +70,7 @@ def main():
 
     # Initialize and run the evaluation
     evaluator = SparseEvaluation(x, args.chunk_size,mask_coef = None ,function=function)
-    global_sparse_tensor, function_sum = evaluator.evaluate_all_chunks(args.num_workers)
+    global_sparse_tensor, function_sum = evaluator.evaluate_all_chunks(args.num_worker)
 
     ray.shutdown()
   

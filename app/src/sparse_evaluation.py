@@ -7,7 +7,7 @@ from typing import Callable
 device = torch.device("cpu")
 
 
-@ray.remote(num_cpus=8, memory=34359738368) 
+@ray.remote(num_cpus=8, memory=32*1024*1024*1024) 
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, global_start_index):
         self.x_chunk = x_chunk.coalesce()
@@ -66,6 +66,7 @@ class SparseWorker:
 
                 del chunk_dense_tensor, chunk_sparse_tensor, func_output, func_output_sparse, add_indices
                 torch.cuda.empty_cache()
+                
 
         global_indices = torch.cat(global_storage['indices'], dim=1)
         global_values = torch.cat(global_storage['values'], dim=0)
