@@ -10,8 +10,8 @@ import torch.nn as nn
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Sparse Evaluation with Ray")
     parser.add_argument('--num_chanel', type=int, default=3, help='Number of channels')
-    parser.add_argument('--width', type=int, default=224, help='Width of the input')
-    parser.add_argument('--height', type=int, default=224, help='Height of the input')
+    parser.add_argument('--width', type=int, default=112, help='Width of the input')
+    parser.add_argument('--height', type=int, default=112, help='Height of the input')
     parser.add_argument('--chunk_size', type=int, default=500, help='Chunk size')
     parser.add_argument('--num_worker', type=int, default=10, help='Number of workers')
     parser.add_argument('--alpha', type=float, default=0.0001, help='Alpha value')
