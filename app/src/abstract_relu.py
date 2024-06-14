@@ -73,14 +73,15 @@ class AbstractReLU(nn.Module):
         """
         new_sparse = None
         if add_symbol:
-             new_sparse = ZonoSparseGeneration(trash_layer,from_trash=True,start_index=start_index).total_zono()
+             _, new_sparse = ZonoSparseGeneration(trash_layer,from_trash=True,start_index=start_index).total_zono()
+             
              trash_layer = torch.zeros_like(trash_layer)
 
         return x_center,trash_layer, mask_epsilon, new_sparse
     
 
 def main():
-    x,t,m,n = AbstractReLU().abstract_relu(torch.randn(224,512,512),0.3*torch.randn(224,512,512),torch.zeros(224,512,512),start_index=150,add_symbol=True)
+    x,t,m,n = AbstractReLU().abstract_relu(torch.randn(224,512,512),0.01*torch.randn(224,512,512),torch.zeros(224,512,512),start_index=150,add_symbol=True)
     print(x)
     print(t)
     print(m)

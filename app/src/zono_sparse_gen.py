@@ -53,7 +53,7 @@ class ZonoSparseGeneration:
 
                 indice_tensor = torch.tensor(global_storage['indices'], dtype=torch.int32).t()
                 values_tensor = torch.tensor(global_storage['values'], dtype=torch.float32)
-                sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=(self.input_shape[0], self.input_shape[0]))
+                sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=(self.input_shape[0], self.input_shape[0])).coalesce()
 
                 return self.input, sparse_zonotope.to_dense()
 
@@ -83,7 +83,7 @@ class ZonoSparseGeneration:
 
                 indice_tensor = torch.tensor(global_storage['indices'], dtype=torch.int32).t()
                 values_tensor = torch.tensor(global_storage['values'], dtype=torch.float32)
-                sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=(num_elements, self.input_shape[0], self.input_shape[1], self.input_shape[2]))
+                sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=(num_elements, self.input_shape[0], self.input_shape[1], self.input_shape[2])).coalesce()
 
             else:
                 self.indices = torch.tensor(self.indices)
@@ -103,7 +103,7 @@ class ZonoSparseGeneration:
                 print(indice_tensor)
                 print(values_tensor)
 
-                sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=(num_elements, self.input_shape[0], self.input_shape[1], self.input_shape[2]))
+                sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=(num_elements, self.input_shape[0], self.input_shape[1], self.input_shape[2])).coalesce()
 
             return self.input, sparse_zonotope
 
@@ -127,7 +127,7 @@ class ZonoSparseGeneration:
             values_tensor = torch.tensor(global_storage['values'], dtype=torch.float32)
             dim = tuple(torch.cat((torch.tensor([len(indices)]), torch.tensor(list_of_shape(self.input)))))
 
-            sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=dim)
+            sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=dim).coalesce()
 
             return self.input, sparse_zonotope
 
