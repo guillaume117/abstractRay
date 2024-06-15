@@ -31,7 +31,7 @@ def main():
    
     evaluator = SparseEvaluation(zono_from_test,chunk_size =2000,function =func_conv1)
     zono_conv_1,sum_abs =evaluator.evaluate_all_chunks(num_workers=3)
-    ray.shutdown()
+
     print(zono_conv_1)
     
     center,trash_layer, mask_epsilon, new_sparse = AbstractReLU().abstract_relu(center,sum_abs,torch.zeros_like(center),start_index=3*56*56,add_symbol=True)
@@ -40,7 +40,7 @@ def main():
 
 
     center = conv2(center)
-    ray.init(include_dashboard=True)
+
    
     evaluator = SparseEvaluation(zono_conv_1,chunk_size =2000,function =func_conv1)
     zono_conv_1,sum_abs =evaluator.evaluate_all_chunks(num_workers=3)

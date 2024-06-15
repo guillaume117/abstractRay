@@ -8,4 +8,4 @@ COPY . /app
 EXPOSE  8265
 WORKDIR /app
 
-CMD ["python", "app/main.py", "--num_chanel", "3", "--width", "112", "--height", "112",  "--chunk_size", "1" ,"--num_worker", "10","--alpha", "0.0001"]
+CMD ["python", "app/main.py"]
