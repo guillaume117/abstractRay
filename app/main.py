@@ -38,7 +38,6 @@ def main():
 
     print(new_sparse)
 
-
     center = conv2(center)
 
    
