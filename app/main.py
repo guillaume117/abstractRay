@@ -23,14 +23,14 @@ def main():
     func_conv2.bias.data = torch.zeros_like(func_conv2.bias.data)
 
 
-    test= torch.randn(3,56,56)
+    test= torch.randn(3,256,256)
     _,zono_from_test = ZonoSparseGeneration(test,0.001).total_zono()
 
     center = conv1(test)
     ray.init(include_dashboard=True)
    
     evaluator = SparseEvaluation(zono_from_test,chunk_size =2000,function =func_conv1)
-    zono_conv_1,sum_abs =evaluator.evaluate_all_chunks(num_workers=3)
+    zono_conv_1,sum_abs =evaluator.evaluate_all_chunks(num_workers=9)
 
     print(zono_conv_1)
     
@@ -42,7 +42,8 @@ def main():
 
    
     evaluator = SparseEvaluation(zono_conv_1,chunk_size =2000,function =func_conv1)
-    zono_conv_1,sum_abs =evaluator.evaluate_all_chunks(num_workers=3)
+    zono_conv_1,sum_abs =evaluator.evaluate_all_chunks(num_workers=9)
+    print(zono_conv_1)
 
     ray.shutdown()
 
