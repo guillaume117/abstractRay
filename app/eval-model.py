@@ -9,7 +9,7 @@ sys.path.append('app/src')
 sys.path.append('./src')
 
 
-from  sparse_evaluation import SparseEvaluation  
+from sparse_evaluation import SparseEvaluation  
 from zono_sparse_gen import ZonoSparseGeneration
 from unstack_network import UnStackNetwork
 from abstract_relu import AbstractReLU
@@ -76,9 +76,8 @@ class LayerEvaluator:
                 }
         return results
 
-# Supposons que ces fonctions et classes soient définies ailleurs dans votre code
 def dim_chunk(layer):
-    # Implémentation spécifique de la fonction dim_chunk
+
     return 10
 
 
