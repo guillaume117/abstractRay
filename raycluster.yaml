@@ -1,0 +1,167 @@
+apiVersion: ray.io/v1alpha1
+kind: RayCluster
+metadata:
+  name: raycluster-complete
+spec:
+  rayVersion: "2.3.0"
+  enableInTreeAutoscaling: true
+  headGroupSpec:
+    serviceType: ClusterIP
+    rayStartParams:
+      dashboard-host: "0.0.0.0"
+    template:
+      metadata:
+        name: ray-head
+      spec:
+        volumes:
+          - name: app-volume
+            hostPath:
+              path: /mnt/abstractRay/app
+              type: Directory
+        containers:
+          - name: ray-head
+            image: rayproject/ray-ml:2.3.0
+            resources:
+              limits:
+                cpu: 4
+                memory: 16Gi
+              requests:
+                cpu: 4
+                memory: 16Gi
+            volumeMounts:
+              - mountPath: /home/ubuntu/app
+                name: app-volume
+            lifecycle:
+              preStop:
+                exec:
+                  command: ["/bin/sh", "-c", "ray stop"]
+            ports:
+              - containerPort: 6379
+                name: gcs
+              - containerPort: 8265
+                name: dashboard
+              - containerPort: 10001
+                name: client
+              - containerPort: 8000
+                name: serve
+
+  workerGroupSpecs:
+    - groupName: small-group
+      replicas: 1
+      minReplicas: 1
+      maxReplicas: 5
+      rayStartParams: {}
+      template:
+        spec:
+          volumes:
+            - name: app-volume
+              hostPath:
+                path: /mnt/abstractRay/app
+                type: Directory
+          containers:
+            - name: ray-worker
+              image: rayproject/ray-ml:2.3.0
+              resources:
+                limits:
+                  cpu: 4
+                  memory: 16Gi
+                requests:
+                  cpu: 4
+                  memory: 16Gi
+              volumeMounts:
+                - mountPath: /home/ubuntu/app
+                  name: app-volume
+              lifecycle:
+                preStop:
+                  exec:
+                    command: ["/bin/sh", "-c", "ray stop"]
+              ports:
+                - containerPort: 6379
+                  name: gcs
+                - containerPort: 8265
+                  name: dashboard
+                - containerPort: 10001
+                  name: client
+                - containerPort: 8000
+                  name: serve
+
+    - groupName: medium-group
+      replicas: 2
+      minReplicas: 2
+      maxReplicas: 6
+      rayStartParams: {}
+      template:
+        spec:
+          volumes:
+            - name: app-volume
+              hostPath:
+                path: /mnt/abstractRay/app
+                type: Directory
+          containers:
+            - name: ray-worker
+              image: rayproject/ray-ml:2.3.0
+              resources:
+                limits:
+                  cpu: 8
+                  memory: 32Gi
+                requests:
+                  cpu: 8
+                  memory: 32Gi
+              volumeMounts:
+                - mountPath: /home/ubuntu/app
+                  name: app-volume
+              lifecycle:
+                preStop:
+                  exec:
+                    command: ["/bin/sh", "-c", "ray stop"]
+              ports:
+                - containerPort: 6379
+                  name: gcs
+                - containerPort: 8265
+                  name: dashboard
+                - containerPort: 10001
+                  name: client
+                - containerPort: 8000
+                  name: serve
+
+    - groupName: gpu-group
+      replicas: 1
+      minReplicas: 1
+      maxReplicas: 4
+      rayStartParams: {}
+      template:
+        spec:
+          volumes:
+            - name: app-volume
+              hostPath:
+                path: /mnt/abstractRay/app
+                type: Directory
+          containers:
+            - name: ray-worker
+              image: rayproject/ray-ml:2.3.0
+              resources:
+                limits:
+                  cpu: 16
+                  memory: 64Gi
+                  nvidia.com/gpu: 1
+                requests:
+                  cpu: 16
+                  memory: 64Gi
+                  nvidia.com/gpu: 1
+              volumeMounts:
+                - mountPath: /home/ubuntu/app
+                  name: app-volume
+              lifecycle:
+                preStop:
+                  exec:
+                    command: ["/bin/sh", "-c", "ray stop"]
+              ports:
+                - containerPort: 6379
+                  name: gcs
+                - containerPort: 8265
+                  name: dashboard
+                - containerPort: 10001
+                  name: client
+                - containerPort: 8000
+                  name: serve
+
