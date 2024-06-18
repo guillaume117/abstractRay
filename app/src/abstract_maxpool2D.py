@@ -3,6 +3,7 @@ import torch.nn as nn
 import copy
 from typing import List, Union, Tuple
 from zono_sparse_gen import ZonoSparseGeneration
+from abstract_relu import AbstractReLU
 import numpy as np
 import gc
 
@@ -61,6 +62,29 @@ class AbstractMaxpool2D(nn.Module):
         conv_3.weight.data = w_3
         conv_3.bias.data =  torch.zeros(dim_x)
        #max(a,b,c,d) = relu(relu(relu(a-b)+b)+c)+d)
+
+            
+                dim_chunk_val_0 = self.dim_chunk(available_RAM=8)
+                print(dim_chunk_val_0)
+                self.input = layer(self.input)
+
+                dim_chunk_val_1 = self.dim_chunk(available_RAM=8)
+                print(dim_chunk_val_1)
+                dim_chunk_val = min(dim_chunk_val_0,dim_chunk_val_1)
+                epsilon_layer = details[f'epsilon_{name}']
+            
+                
+                evaluator = SparseEvaluation(zono_from_test, chunk_size=dim_chunk_val, function=epsilon_layer, mask_coef=mask_epsilon)
+                zono_from_test, sum_abs = evaluator.evaluate_all_chunks(num_workers=num_workers)
+                start_index = zono_from_test.size(0)
+                
+                trash_layer = details[f'noise_{name}']
+                trash  = trash_layer(trash)
+
+
+
+
+
         
         x_result,x_min_result,x_max_result,x_true_result  = AbstractLinear.abstract_conv2D(conv_0,x,x_true,device=device)
         x_result,x_min_result,x_max_result,x_true_result = AbstractReLU.abstract_relu_conv2D(x_result,x_min_result,x_max_result,x_true_result,add_symbol=add_symbol,device=device)
@@ -106,31 +130,5 @@ class AbstractMaxpool2D(nn.Module):
         
         x_true = x_final
         
-        if add_symbol:
-            
-            if len(x)-2+len(torch.where(x[-1].flatten()!=0)[0])>AbstractMaxpool2D.max_symbol:
-                recycle_symbols = AbstractMaxpool2D.recycling*(AbstractMaxpool2D.max_symbol - len(x)+2)
-                recycle_symbols = int(recycle_symbols)
-            
-            else :
-                recycle_symbols = AbstractMaxpool2D.recycling*(len(torch.where(x[-1].flatten()!=0)[0]))
-                recycle_symbols = int(recycle_symbols)
-            
-            if recycle_symbols>0:
-          
-                new_eps = torch.topk((x[-1].flatten()),recycle_symbols).indices.to(device)
-                index = torch.arange(len(new_eps)).to(device)
-                new_eps_batch_shape = x[-1].flatten().expand(len(new_eps)+1,-1).shape
-                new_eps_batch = torch.zeros(new_eps_batch_shape).to(device)
-                new_eps_batch[index,new_eps]=x[-1].flatten()[new_eps]
-                new_eps_batch_last = x[-1].flatten()
-                new_eps_batch_last[new_eps]=0
-                new_eps_batch[-1] = new_eps_batch_last
-                new_eps_batch = new_eps_batch.reshape(x[-1].expand(len(new_eps)+1,-1,-1,-1).shape)
-                x=x[:-1]
-                x = torch.cat((x,new_eps_batch),dim=0) 
-            
-            else :
-                pass    
-        
+       
         return x,x_min,x_max,x_true

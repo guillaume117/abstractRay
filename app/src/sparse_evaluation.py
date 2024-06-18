@@ -7,7 +7,7 @@ from typing import Callable
 device = torch.device("cpu")
 
 
-@ray.remote(num_cpus=4,memory=8*1024*1024*1024)# memory=16*1024*1024*1024) 
+@ray.remote(num_cpus=16,memory=8*1024*1024*1024)# memory=16*1024*1024*1024) 
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, global_start_index):
         self.x_chunk = x_chunk.coalesce()
@@ -98,6 +98,7 @@ class SparseEvaluation:
         self.num_chunks = (self.dense_shape[0] + self.chunk_size - 1) // self.chunk_size
         self.output_size = list(self.function(x0).shape)
         self.output_size[0] = self.dense_shape[0]
+        print("output_size",self.output_size)
 
     def evaluate_all_chunks(self, num_workers):
         
@@ -128,7 +129,7 @@ class SparseEvaluation:
             workers.append(worker.evaluate_chunks.remote())
 
         results = ray.get(workers)
-
+        print(results)
         global_indices = []
         global_values = []
         function_sum = None

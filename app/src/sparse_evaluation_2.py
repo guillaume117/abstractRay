@@ -7,7 +7,7 @@ from typing import Callable
 device = torch.device("cpu")
 
 
-@ray.remote(num_cpus=14)  # memory=16*1024*1024*1024)
+@ray.remote(num_cpus=16, memory=8*1024*1024*1024)
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, global_start_index):
         self.x_chunk = x_chunk.coalesce()
@@ -58,7 +58,7 @@ class SparseWorker:
 
                     func_output_sparse = func_output.to_sparse().coalesce()
                     add_indices = func_output_sparse.indices().to(torch.int32) + torch.tensor(
-                        [[chunk_start + self.global_start_index], [0], [0], [0]], dtype=torch.int32, device=device
+                        [[chunk_start + self.global_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=torch.int32, device=device
                     )
 
                     global_storage['indices'].append(add_indices.cpu())
@@ -86,7 +86,7 @@ class SparseEvaluation:
         else:
             self.function = function
 
-        x0 = torch.zeros(1, self.dense_shape[1], self.dense_shape[2], self.dense_shape[3]).to(device)
+        x0 = torch.zeros(1, *self.dense_shape[1:]).to(device)
 
         if mask_coef is None:
             self.mask_coef = torch.ones_like(x0)
@@ -96,9 +96,9 @@ class SparseEvaluation:
         self.num_chunks = (self.dense_shape[0] + self.chunk_size - 1) // self.chunk_size
         self.output_size = list(self.function(x0).shape)
         self.output_size[0] = self.dense_shape[0]
+        print("output_size", self.output_size)
 
     def evaluate_all_chunks(self, num_workers):
-
         indices = self.x.indices()
         values = self.x.values()
         indices = indices.t()
@@ -123,31 +123,15 @@ class SparseEvaluation:
             ).coalesce()
 
             worker = SparseWorker.remote(worker_sparse_tensor, self.chunk_size, self.mask_coef, self.function, self.dense_shape, chunk_start)
-            workers.append((chunk_start, worker.evaluate_chunks.remote()))
+            workers.append(worker.evaluate_chunks.remote())
 
-        pending_tasks = workers
-        results = []
-
-        while pending_tasks:
-            ready_tasks, pending_tasks = ray.wait([task for _, task in pending_tasks], num_returns=len(pending_tasks), timeout=10)
-
-            for ready_task in ready_tasks:
-                chunk_start, task = next((cs, t) for cs, t in workers if t == ready_task)
-                result = ray.get(ready_task)
-
-                if isinstance(result, Exception):
-                    print(f"Task for chunk_start {chunk_start} failed. Relaunching...")
-                    new_worker = SparseWorker.remote(worker_sparse_tensor, self.chunk_size, self.mask_coef, self.function, self.dense_shape, chunk_start)
-                    new_task = new_worker.evaluate_chunks.remote()
-                    pending_tasks.append((chunk_start, new_task))
-                else:
-                    results.append((chunk_start, result))
-
+        results = ray.get(workers)
         global_indices = []
         global_values = []
         function_sum = None
+       
 
-        for _, (add_indices, func_values, func_sum) in results:
+        for add_indices, func_values, func_sum in results:
             global_indices.append(add_indices)
             global_values.append(func_values)
             if function_sum is None:
@@ -161,5 +145,3 @@ class SparseEvaluation:
         global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=self.output_size).coalesce()
 
         return global_sparse_tensor, function_sum
-
-

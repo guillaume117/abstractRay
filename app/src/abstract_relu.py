@@ -74,6 +74,7 @@ class AbstractReLU(nn.Module):
         new_sparse = None
         if add_symbol:
              _, new_sparse = ZonoSparseGeneration(trash_layer,from_trash=True,start_index=start_index).total_zono()
+             print(new_sparse)
              
              trash_layer = torch.zeros_like(trash_layer)
 

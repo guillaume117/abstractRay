@@ -23,7 +23,8 @@ class UnStackNetwork:
     def process_layer(self, name, layer, x):
         if isinstance(layer, nn.Linear):
             # Flatten the tensor before passing to fully connected layers
-            x = x.view(x.size(0), -1)
+            self.process_flatten(name, nn.Flatten(), x)
+            x = nn.Flatten()(x)
             self.process_linear_layer(name, layer, x)
         elif isinstance(layer, nn.Conv2d):
             self.process_conv_layer(name, layer, x)
@@ -38,6 +39,15 @@ class UnStackNetwork:
             'original': copy.deepcopy(layer),
             'epsilon_{}'.format(name): self.copy_with_zero_bias(layer),
             'noise_{}'.format(name): self.copy_with_abs_weights(layer),
+            'output_dim': self.compute_output_dim(layer, x)
+        }
+
+    def process_flatten(self, name, layer, x):
+        self.output[f'{name}_flatten'] = {
+            'type': type(layer),
+            'original': layer,
+            'epsilon_{}'.format(f'{name}_flatten'): layer,
+            'noise_{}'.format(f'{name}_flatten'): layer,
             'output_dim': self.compute_output_dim(layer, x)
         }
 
@@ -74,17 +84,6 @@ class UnStackNetwork:
 
     def compute_output_dim(self, layer, x):
         with torch.no_grad():
-            out = layer(x) if layer is not None else x  # Handle input layer without layer
+            out = layer(x) if layer is not None else x  
         return out.shape
 
-# Charger le modèle VGG19 pré-entraîné
-model = models.vgg19(weights=models.VGG19_Weights.DEFAULT)
-
-# Spécifier les dimensions d'entrée (par exemple, une image RGB de 224x224)
-input_dim = (3, 224, 224)
-
-# Utiliser la classe UnStackNetwork
-unstacked = UnStackNetwork(model, input_dim)
-
-# Afficher les résultats
-print(unstacked.output)
