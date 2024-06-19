@@ -6,7 +6,7 @@ import sys
 import copy
 sys.path.append('app/src')
 sys.path.append('./src')
-from  sparse_evaluation import SparseEvaluation  
+from  sparse_evaluation_3 import SparseEvaluation  
 from zono_sparse_gen import ZonoSparseGeneration
 from abstract_relu import AbstractReLU
 

@@ -3,9 +3,9 @@ import torch
 import torch.nn.functional as F
 from torch.sparse import FloatTensor
 from typing import Callable
+import time
 
 device = torch.device("cpu")
-
 
 @ray.remote(num_cpus=16, memory=8*1024*1024*1024)
 class SparseWorker:
@@ -16,8 +16,9 @@ class SparseWorker:
         self.function = function
         self.dense_shape = dense_shape
         self.global_start_index = global_start_index
+        self.progress = 0
 
-    def evaluate_chunks(self):
+    def evaluate_chunks(self, progress_actor):
         try:
             indices = self.x_chunk.indices().t()
             values = self.x_chunk.values()
@@ -28,15 +29,12 @@ class SparseWorker:
             }
             function_sum = None
 
-            num_chunks = (self.x_chunk.size(0) + self.chunk_size - 1) // self.chunk_size
-            print("num_chunks",num_chunks)
+            num_chunks = (self.dense_shape[0] + self.chunk_size - 1) // self.chunk_size
 
             for i in range(num_chunks):
                 with torch.no_grad():
-                    
                     chunk_start = i * self.chunk_size
-                    chunk_end = min((i + 1) * self.chunk_size, self.x_chunk.size(0))
-                    print(f'chunk_start = {chunk_start} , chunk end = {chunk_end}')
+                    chunk_end = min((i + 1) * self.chunk_size, self.dense_shape[0])
                     mask = (indices[:, 0] >= chunk_start) & (indices[:, 0] < chunk_end)
 
                     chunk_indices = indices[mask]
@@ -44,7 +42,6 @@ class SparseWorker:
 
                     chunk_values = values[mask]
                     chunk_size = chunk_end - chunk_start
-                    print(chunk_size)
 
                     chunk_sparse_tensor = torch.sparse_coo_tensor(
                         chunk_indices.t(), chunk_values,
@@ -70,9 +67,11 @@ class SparseWorker:
 
                     del chunk_dense_tensor, chunk_sparse_tensor, func_output, func_output_sparse, add_indices
                     torch.cuda.empty_cache()
-                    progress = (i + 1) / num_chunks
+
+                    # Update progress
+                    self.progress = (i + 1) / num_chunks
                     if i%10==0:
-                        print(f"Worker {self.global_start_index // self.dense_shape[0]} progress: {progress:.2%}")
+                        progress_actor.update_progress.remote(self.global_start_index, self.progress)
 
             global_indices = torch.cat(global_storage['indices'], dim=1)
             global_values = torch.cat(global_storage['values'], dim=0)
@@ -81,6 +80,16 @@ class SparseWorker:
         except Exception as e:
             return e
 
+@ray.remote
+class ProgressActor:
+    def __init__(self):
+        self.worker_progress = {}
+
+    def update_progress(self, worker_id, progress):
+        self.worker_progress[worker_id] = progress
+
+    def get_progress(self):
+        return self.worker_progress
 
 class SparseEvaluation:
     def __init__(self, x: FloatTensor, chunk_size: int, mask_coef: FloatTensor = None, function: Callable = None):
@@ -112,12 +121,12 @@ class SparseEvaluation:
 
         chunk_size_per_worker = (self.dense_shape[0] + num_workers - 1) // num_workers
         workers = []
-        print("chunk size per worler",chunk_size_per_worker)
+
+        progress_actor = ProgressActor.remote()
+
         for i in range(num_workers):
             chunk_start = i * chunk_size_per_worker
-            
             chunk_end = min((i + 1) * chunk_size_per_worker, self.dense_shape[0])
-            print(f'chunk start / end  for worker {i} = {chunk_start} / {chunk_end} ')
             mask = (indices[:, 0] >= chunk_start) & (indices[:, 0] < chunk_end)
 
             worker_indices = indices[mask]
@@ -130,16 +139,22 @@ class SparseEvaluation:
                 worker_indices.t(), worker_values,
                 torch.Size([worker_size] + self.dense_shape[1:])
             ).coalesce()
-            print(worker_sparse_tensor.size())
 
             worker = SparseWorker.remote(worker_sparse_tensor, self.chunk_size, self.mask_coef, self.function, self.dense_shape, chunk_start)
-            workers.append(worker.evaluate_chunks.remote())
-
+            workers.append(worker.evaluate_chunks.remote(progress_actor))
+        
+        while True:
+            progress = ray.get(progress_actor.get_progress.remote())
+            for worker_id, progress_value in progress.items():
+                print(f"Worker {worker_id} progress: {progress_value:.2%}")
+            if all(progress_value == 1 for progress_value in progress.values()):
+                break
+            time.sleep(5)  # Adjust the sleep duration as needed
+        
         results = ray.get(workers)
         global_indices = []
         global_values = []
         function_sum = None
-       
 
         for add_indices, func_values, func_sum in results:
             global_indices.append(add_indices)
