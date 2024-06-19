@@ -136,7 +136,7 @@ class SimpleCNN(nn.Module):
         self.relu2 = nn.ReLU()
         
  
-        self.fc1 = nn.Linear(in_features=1605632, out_features=128)  
+        self.fc1 = nn.Linear(in_features=1179648, out_features=128)  
         self.relu3 = nn.ReLU()
         self.fc2 = nn.Linear(in_features=128, out_features=10)  
         self.relu4 = nn.ReLU()
@@ -166,7 +166,7 @@ model = pytorch_model
 
 """
 model = SimpleCNN()
-input_dim = (3,224,224
+input_dim = (3,192,192
              )
 print(model)
 
@@ -179,7 +179,7 @@ test_input = torch.randn(1, *input_dim)
 _,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.001).total_zono()
 print(zonotope_espilon_sparse_tensor)
 ray.init()
-layer_evaluator = LayerEvaluator(unstacked.output, test_input,num_workers=3, available_RAM=4)
+layer_evaluator = LayerEvaluator(unstacked.output, test_input,num_workers=5, available_RAM=4)
 
 result = layer_evaluator.evaluate_layers(zonotope_espilon_sparse_tensor)
 
