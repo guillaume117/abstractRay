@@ -5,15 +5,16 @@ from torch.sparse import FloatTensor
 from typing import Callable
 
 
-device = torch.device("cpu")
-
-@ray.remote
+@ray.remote(num_gpus=1)
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, global_start_index, device):
         self.x_chunk = x_chunk.coalesce().to(device)
         self.chunk_size = chunk_size
         self.mask_coef = mask_coef.to(device)
-        self.function = function.to(device)
+        if isinstance(function, nn.Module):
+            function = function.to(device)
+       
+        self.function = function
         self.dense_shape = dense_shape
         self.global_start_index = global_start_index
         self.device = device
@@ -87,15 +88,14 @@ class SparseEvaluation:
         self.x = x
         self.chunk_size = chunk_size
         self.dense_shape = list(x.size())
-        self.device = torch.device(device)
+        self.device = device
 
         if function is None:
             self.function = lambda x: x
         else:
             self.function = function
 
-        x0 = torch.zeros(1, *self.dense_shape[1:]).to(self.device)
-
+        x0 = torch.zeros(1, *self.dense_shape[1:])
         if mask_coef is None:
             self.mask_coef = torch.ones_like(x0)
         else:
@@ -152,6 +152,6 @@ class SparseEvaluation:
         global_indices = torch.cat(global_indices, dim=1)
         global_values = torch.cat(global_values, dim=0)
 
-        global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=self.output_size).coalesce()
+        global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=self.output_size).coalesce().to('cpu')
 
-        return global_sparse_tensor, function_sum
+        return global_sparse_tensor, function_sum.to('cpu')

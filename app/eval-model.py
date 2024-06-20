@@ -179,7 +179,7 @@ test_input = torch.randn(1, *input_dim)
 _,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.001).total_zono()
 print(zonotope_espilon_sparse_tensor)
 ray.init()
-model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=5, available_RAM=5,device=torch.device('cpu'))
+model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=1, available_RAM=5,device=torch.device('cpu'))
 
 result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)
 

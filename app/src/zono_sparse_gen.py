@@ -9,6 +9,7 @@ from typing import List, Union, Tuple, Callable
 sys.path.append('app/src')
 sys.path.append('./src')
 
+
 def list_of_shape(tensor: torch.Tensor) -> List[int]:
     """Returns the shape of a tensor as a list."""
     tensor = torch.tensor(tensor)
@@ -19,8 +20,8 @@ class ZonoSparseGeneration:
     
     def __init__(self, input: FloatTensor, noise_intensity : Union[float, torch.Tensor]=0, noise_type: str = 'additive', 
                  indices=None, from_trash=False, start_index=None):
-        self.input = input
-        self.noise_intensity = torch.tensor(noise_intensity)
+        self.input = input.to('cpu')
+        self.noise_intensity = torch.tensor(noise_intensity).to('cpu')
         self.noise_type = noise_type
         self.input_shape = list_of_shape(input)
         self.indices = indices
@@ -39,6 +40,7 @@ class ZonoSparseGeneration:
                     num_elements = self.input_shape[0]
                     self.indices = torch.arange(1, num_elements, 1)
                 else:
+                    self.indices = self.indices.to('cpu')
                     self.indices = torch.tensor(self.indices)
                     num_elements = self.indices.numel()
 
@@ -86,7 +88,7 @@ class ZonoSparseGeneration:
                 sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=(num_elements, self.input_shape[0], self.input_shape[1], self.input_shape[2])).coalesce()
 
             else:
-                self.indices = torch.tensor(self.indices)
+                self.indices = torch.tensor(self.indices).to('cpu')
                 assert len(self.indices) == len(self.noise_intensity), 'Length of Noise_intensity and indices mismatch'
                 global_storage = {'indices': [], 'values': []}
                 num_elements = len(self.indices)
@@ -130,7 +132,6 @@ class ZonoSparseGeneration:
             sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=dim).coalesce()
 
             return self.input, sparse_zonotope
-
 def main(args):
     main()
 

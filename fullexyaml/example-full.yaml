@@ -26,8 +26,8 @@ idle_timeout_minutes: 5
 
 provider:
     type: gcp
-    region: europe-west9
-    availability_zone: europe-west9-a
+    region: europe-west4
+    availability_zone: europe-west4-a
     project_id: gberthelot
 
 auth:

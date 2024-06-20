@@ -8,6 +8,8 @@ import gc
 
 
 
+
+
 class AbstractReLU(nn.Module):
     max_symbol = np.inf
     recycling = 1
@@ -22,9 +24,12 @@ class AbstractReLU(nn.Module):
                       trash_layer:torch.Tensor,
                       start_index: int = None,
                       add_symbol:bool=False,
-                      device:torch.device=torch.device("cpu"))->Tuple[torch.Tensor, torch.Tensor, torch.Tensor ]:
+                      device:torch.device=torch.device("cuda"))->Tuple[torch.Tensor, torch.Tensor, torch.Tensor ]:
 
- 
+
+        x_center = x_center.to(device)
+        x_abs = x_abs.to(device)
+        trash_layer = trash_layer.to(device)
         x_min = x_center-x_abs
         x_max = x_center+x_abs
       
@@ -72,13 +77,14 @@ class AbstractReLU(nn.Module):
         x[-1,mask_0]=0
         """
         new_sparse = None
+        trash_layer.to('cpu')
         if add_symbol:
              _, new_sparse = ZonoSparseGeneration(trash_layer,from_trash=True,start_index=start_index).total_zono()
              print(new_sparse)
              
              trash_layer = torch.zeros_like(trash_layer)
 
-        return x_center,trash_layer, mask_epsilon, new_sparse
+        return x_center.to('cpu'),trash_layer.to('cpu'), mask_epsilon.to('cpu'), new_sparse.to('cpu')
     
 
 def main():
