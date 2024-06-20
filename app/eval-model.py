@@ -10,7 +10,7 @@ sys.path.append('./src')
 
 
 
-from sparse_evaluation_2 import SparseEvaluation  
+from sparse_evaluation_3 import SparseEvaluation  
 from zono_sparse_gen import ZonoSparseGeneration
 from unstack_network import UnStackNetwork
 from abstract_relu import AbstractReLU
@@ -31,14 +31,14 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 set_seed(42)
-class LayerEvaluator:
+class ModelEvaluator:
 
-    def __init__(self, unstacked_model, input,num_workers = 1,available_RAM = 8):
+    def __init__(self, unstacked_model, input,num_workers = 1,available_RAM = 8, device =torch.device('cpu')):
         self.output = unstacked_model
         self.input = input
         self.num_workers = num_workers
         self.available_RAM = available_RAM
-
+        self.device = device
         
     def dim_chunk(self, available_RAM=None):
         if available_RAM is None:
@@ -64,7 +64,7 @@ class LayerEvaluator:
         epsilon_layer = self.details[f'epsilon_{name}']
         print("espislon layer",epsilon_layer)
 
-        evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, chunk_size=dim_chunk_val, function=epsilon_layer, mask_coef=self.mask_epsilon)
+        evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, chunk_size=dim_chunk_val, function=epsilon_layer, mask_coef=self.mask_epsilon, device= self.device)
         self.zonotope_espilon_sparse_tensor, self.sum_abs = evaluator.evaluate_all_chunks(num_workers=num_workers)
         self.len_zono = self.zonotope_espilon_sparse_tensor.size(0)
 
@@ -72,7 +72,7 @@ class LayerEvaluator:
         
         self.trash = trash_layer(self.trash)
     
-    def evaluate_layers(self, zonotope_espilon_sparse_tensor, num_workers=None):
+    def evaluate_model(self, zonotope_espilon_sparse_tensor, num_workers=None):
         if num_workers is None:
             num_workers = self.num_workers
         self.zonotope_espilon_sparse_tensor=zonotope_espilon_sparse_tensor
@@ -102,7 +102,7 @@ class LayerEvaluator:
                         self.input, self.sum_abs, self.trash, start_index=self.len_zono, add_symbol=True
                     )
                     dim_chunk_val = self.dim_chunk()
-                    evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, chunk_size=dim_chunk_val, function= lambda x:x , mask_coef=self.mask_epsilon)
+                    evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, chunk_size=dim_chunk_val, function= lambda x:x , mask_coef=self.mask_epsilon,device = self.device)
                     self.zonotope_espilon_sparse_tensor, self.sum_abs = evaluator.evaluate_all_chunks(num_workers=num_workers)
                     if new_sparse is not None:
                         zono_size = list(self.zonotope_espilon_sparse_tensor.size())
@@ -179,9 +179,9 @@ test_input = torch.randn(1, *input_dim)
 _,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.001).total_zono()
 print(zonotope_espilon_sparse_tensor)
 ray.init()
-layer_evaluator = LayerEvaluator(unstacked.output, test_input,num_workers=5, available_RAM=32)
+model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=5, available_RAM=5,device=torch.device('cpu'))
 
-result = layer_evaluator.evaluate_layers(zonotope_espilon_sparse_tensor)
+result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)
 
 print(f"True:{model(test_input)}")
 print(f"Center: {result['center']}")
