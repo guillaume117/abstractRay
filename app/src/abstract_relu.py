@@ -83,8 +83,10 @@ class AbstractReLU(nn.Module):
              print(new_sparse)
              
              trash_layer = torch.zeros_like(trash_layer)
+        if new_sparse is not None:
+            new_sparse.to('cpu')
 
-        return x_center.to('cpu'),trash_layer.to('cpu'), mask_epsilon.to('cpu'), new_sparse.to('cpu')
+        return x_center.to('cpu'),trash_layer.to('cpu'), mask_epsilon.to('cpu'), new_sparse
     
 
 def main():

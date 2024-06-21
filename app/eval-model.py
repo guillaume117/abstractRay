@@ -134,7 +134,7 @@ class SimpleCNN(nn.Module):
         self.relu2 = nn.ReLU()
         
  
-        self.fc1 = nn.Linear(in_features=860672, out_features=128)  
+        self.fc1 = nn.Linear(in_features=131072, out_features=128)  
         self.relu3 = nn.ReLU()
         self.fc2 = nn.Linear(in_features=128, out_features=10)  
         self.relu4 = nn.ReLU()
@@ -166,7 +166,7 @@ model = pytorch_model
 global device 
 device = torch.device('cpu')
 model = SimpleCNN()
-input_dim = (3,164,164
+input_dim = (3,64,64
              )
 print(model)
 

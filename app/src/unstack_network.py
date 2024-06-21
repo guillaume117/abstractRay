@@ -87,19 +87,30 @@ class UnStackNetwork:
 
         def copy_with_zero_bias(self, layer):
             new_layer = copy.deepcopy(layer)
-            if isinstance(layer, (nn.Linear, nn.Conv2d)):
-                with torch.no_grad():
+            with torch.no_grad():
+                if isinstance(new_layer, (nn.Linear, nn.Conv2d)):
                     if new_layer.bias is not None:
                         new_layer.bias.zero_()
+                elif isinstance(new_layer, nn.Sequential):
+                    for sublayer in new_layer:
+                        if isinstance(sublayer, (nn.Linear, nn.Conv2d)):
+                            if sublayer.bias is not None:
+                                sublayer.bias.zero_()
             return new_layer
 
         def copy_with_abs_weights(self, layer):
             new_layer = copy.deepcopy(layer)
             with torch.no_grad():
-                if isinstance(layer, (nn.Linear, nn.Conv2d)):
+                if isinstance(new_layer, (nn.Linear, nn.Conv2d)):
                     if new_layer.bias is not None:
                         new_layer.bias.zero_()
                     new_layer.weight.abs_()
+                elif isinstance(new_layer, nn.Sequential):
+                    for sublayer in new_layer:
+                        if isinstance(sublayer, (nn.Linear, nn.Conv2d)):
+                            if sublayer.bias is not None:
+                                sublayer.bias.zero_()
+                            sublayer.weight.abs_()
             return new_layer
 
         def compute_output_dim(self, layer, x):
