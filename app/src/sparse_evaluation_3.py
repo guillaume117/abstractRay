@@ -8,7 +8,7 @@ import torch.nn as nn
 
 @ray.remote#(num_gpus=1)
 class SparseWorker:
-    def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, global_start_index, device):
+    def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, worker_start_index, device):
         self.x_chunk = x_chunk.coalesce().to(device)
         self.chunk_size = chunk_size
         self.mask_coef = mask_coef.to(device)
@@ -17,7 +17,7 @@ class SparseWorker:
        
         self.function = function
         self.dense_shape = dense_shape
-        self.global_start_index = global_start_index
+        self.worker_start_index = worker_start_index
         self.device = device
 
     def evaluate_chunks(self):
@@ -64,7 +64,7 @@ class SparseWorker:
 
                     func_output_sparse = func_output.to_sparse().coalesce()
                     add_indices = func_output_sparse.indices().to(torch.int32) + torch.tensor(
-                        [[chunk_start + self.global_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=torch.int32, device=self.device
+                        [[chunk_start + self.worker_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=torch.int32, device=self.device
                     )
 
                     global_storage['indices'].append(add_indices.cpu())
@@ -74,7 +74,7 @@ class SparseWorker:
                     torch.cuda.empty_cache()
                     progress = (i + 1) / num_chunks
                     if i % 10 == 0:
-                        print(f"Worker {self.global_start_index // self.dense_shape[0]} progress: {progress:.2%}")
+                        print(f"Worker {self.worker_start_index // self.dense_shape[0]} progress: {progress:.2%}")
 
             global_indices = torch.cat(global_storage['indices'], dim=1)
             global_values = torch.cat(global_storage['values'], dim=0)
@@ -85,11 +85,12 @@ class SparseWorker:
 
 
 class SparseEvaluation:
-    def __init__(self, x: FloatTensor, chunk_size: int, mask_coef: FloatTensor = None, function: Callable = None, device = torch.device('cpu')):
+    def __init__(self, x: FloatTensor, chunk_size: int, mask_coef: FloatTensor = None, function: Callable = None, eval_start_index = 0,device = torch.device('cpu')):
         self.x = x
         self.chunk_size = chunk_size
         self.dense_shape = list(x.size())
         self.device = device
+        self.eval_start_index = eval_start_index
 
         if function is None:
             self.function = lambda x: x
@@ -143,6 +144,9 @@ class SparseEvaluation:
         function_sum = None
 
         for add_indices, func_values, func_sum in results:
+            add_indices = add_indices + torch.tensor(
+                        [[self.eval_start_index]] + [[0]] * (add_indices.size(0) - 1), dtype=torch.int32, device=self.device
+                    )
             global_indices.append(add_indices)
             global_values.append(func_values)
             if function_sum is None:

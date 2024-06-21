@@ -76,15 +76,16 @@ class AbstractReLU(nn.Module):
         x[-1,mask_1]=x[-1,mask_1]
         x[-1,mask_0]=0
         """
-        new_sparse = None
+
         trash_layer.to('cpu')
+        """
         if add_symbol:
              _, new_sparse = ZonoSparseGeneration(trash_layer,from_trash=True,start_index=start_index).total_zono()
              print(new_sparse)
              
              trash_layer = torch.zeros_like(trash_layer)
-
-        return x_center.to('cpu'),trash_layer.to('cpu'), mask_epsilon.to('cpu'), new_sparse.to('cpu')
+        """
+        return x_center.to('cpu'),trash_layer.to('cpu'), mask_epsilon.to('cpu')
     
 
 def main():
