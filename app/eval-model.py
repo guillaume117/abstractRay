@@ -55,9 +55,68 @@ class ModelEvaluator:
 
         trash_layer = self.details[f'noise_{self.name}']
         self.trash = trash_layer(self.trash)
+    
+
+
+    def process_max_pool2D(self,maxpool,numworkers= None):
+        dim_x = self.input.size[1]
+        kernel_size = maxpool.kernel_size
+        
+        assert kernel_size==2,f"Maxpool2D kernel size {kernel_size}. A kernel size different of 2 is not supported"
+        
+        stride = maxpool.stride
+        padding = maxpool.paddingkernel_size = 2
+
+
+
+
+
+        conv_0 = nn.Conv2d(dim_x, dim_x, kernel_size=kernel_size, stride=stride, padding=padding,groups=dim_x)
+        conv_1 = nn.Conv2d(dim_x, dim_x, kernel_size=kernel_size, stride=stride, padding=padding,groups=dim_x)
+        conv_2 = nn.Conv2d(dim_x, dim_x, kernel_size=kernel_size, stride=stride, padding=padding,groups=dim_x)
+        conv_3 = nn.Conv2d(dim_x, dim_x, kernel_size=kernel_size, stride=stride, padding=padding,groups=dim_x)
+        
+        w_0 = torch.tensor([[[[1., -1.], [0, 0.]]]])
+        w_1 = torch.tensor([[[[0., 1.], [0, 0.]]]])
+        w_2 = torch.tensor([[[[0., 0.], [0., 1.]]]])
+        w_3 = torch.tensor([[[[0., 0.], [1., 0.]]]])
+        
+        w_0 = w_0.expand(dim_x,-1,-1,-1)
+        w_1 = w_1.expand(dim_x,-1,-1,-1)
+        w_2 = w_2.expand(dim_x,-1,-1,-1)
+        w_3 = w_3.expand(dim_x,-1,-1,-1)
+        
+        conv_0.weight.data = w_0
+        conv_0.bias.data =  torch.zeros(dim_x)
+        conv_1.weight.data = w_1
+        conv_1.bias.data =  torch.zeros(dim_x)
+        conv_2.weight.data = w_2
+        conv_2.bias.data =  torch.zeros(dim_x)
+        conv_3.weight.data = w_3
+        conv_3.bias.data =  torch.zeros(dim_x)
+
+
+        c1=conv_0(self.input)
+        evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
+                                     chunk_size=self.dim_chunk(), 
+                                     function=conv_0, 
+                                     mask_coef=self.mask_epsilon, 
+                                     device= self.device)
+        E1, S1 = evaluator.evaluate_all_chunks(num_workers=self.num_workers)
+        len_E1 = E1.size(0)
+
+       
+        
         
 
-    def process_linear_layer(self, num_workers=None):
+        x1, t1, m1= AbstractReLU.abstract_relu(
+                        c1, S1, self.trash, start_index=len_E1, add_symbol=True
+                    )
+
+
+
+
+    def process_linear_layer(self, num_workers=None, epsilon_layer = None):
 
         if num_workers is None:
             num_workers=self.num_workers
@@ -69,8 +128,9 @@ class ModelEvaluator:
         dim_chunk_val_output = self.dim_chunk()
 
         dim_chunk_val = min(dim_chunk_val_input, dim_chunk_val_output)
+        if epsilon_layer is None : 
 
-        epsilon_layer = self.details[f'epsilon_{self.name}']
+            epsilon_layer = self.details[f'epsilon_{self.name}']
     
         evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
                                      chunk_size=dim_chunk_val, 

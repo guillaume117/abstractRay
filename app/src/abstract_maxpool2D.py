@@ -63,23 +63,6 @@ class AbstractMaxpool2D(nn.Module):
         conv_3.bias.data =  torch.zeros(dim_x)
        #max(a,b,c,d) = relu(relu(relu(a-b)+b)+c)+d)
 
-            
-                dim_chunk_val_0 = self.dim_chunk(available_RAM=8)
-                print(dim_chunk_val_0)
-                self.input = layer(self.input)
-
-                dim_chunk_val_1 = self.dim_chunk(available_RAM=8)
-                print(dim_chunk_val_1)
-                dim_chunk_val = min(dim_chunk_val_0,dim_chunk_val_1)
-                epsilon_layer = details[f'epsilon_{name}']
-            
-                
-                evaluator = SparseEvaluation(zono_from_test, chunk_size=dim_chunk_val, function=epsilon_layer, mask_coef=mask_epsilon)
-                zono_from_test, sum_abs = evaluator.evaluate_all_chunks(num_workers=num_workers)
-                start_index = zono_from_test.size(0)
-                
-                trash_layer = details[f'noise_{name}']
-                trash  = trash_layer(trash)
 
 
 
