@@ -77,7 +77,6 @@ class AbstractReLU(nn.Module):
         x[-1,mask_0]=0
         """
 
-        trash_layer.to('cpu')
         """
         if add_symbol:
              _, new_sparse = ZonoSparseGeneration(trash_layer,from_trash=True,start_index=start_index).total_zono()

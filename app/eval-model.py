@@ -210,12 +210,12 @@ model = pytorch_model
 model = SimpleCNN()
 input_dim = (3,64,64
              )
-print(model)
+
 
 unstacked = UnStackNetwork(model, input_dim)
-
-print(*unstacked.output)
-
+print("*"*100)
+print("unstacked output ",*unstacked.output)
+print("*"*100)
 
 test_input = torch.randn(1, *input_dim)
 _,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.0001).total_zono()
