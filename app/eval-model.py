@@ -44,50 +44,101 @@ class ModelEvaluator:
         dense_memory_footprint = torch.prod(torch.tensor(self.input.shape)) *4/1e9
         return int(max(1,available_RAM//(3*dense_memory_footprint)))
     
+    
+    def process_center_layer(self):
 
-    def process_linear_layer(self, name, num_workers=None):
+        layer = self.details['original']
+        self.input = layer(self.input)
+
+
+    def process_trash_layer(self):
+
+        trash_layer = self.details[f'noise_{self.name}']
+        self.trash = trash_layer(self.trash)
+        
+
+    def process_linear_layer(self, num_workers=None):
+
         if num_workers is None:
             num_workers=self.num_workers
-        self.mask_epsilon = torch.ones_like(self.input)
+
        
-        layer = self.details['original']
+        
         dim_chunk_val_input = self.dim_chunk()
-        print(dim_chunk_val_input)
-        self.input = layer(self.input)
-        print("self.input.size after lin",self.input.size())
-
+        self.process_center_layer()
         dim_chunk_val_output = self.dim_chunk()
-        print(dim_chunk_val_output)
-        dim_chunk_val = min(dim_chunk_val_input, dim_chunk_val_output)
-        epsilon_layer = self.details[f'epsilon_{name}']
-        print("espislon layer",epsilon_layer)
 
-        evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, chunk_size=dim_chunk_val, function=epsilon_layer, mask_coef=self.mask_epsilon, device= self.device)
+        dim_chunk_val = min(dim_chunk_val_input, dim_chunk_val_output)
+
+        epsilon_layer = self.details[f'epsilon_{self.name}']
+    
+        evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
+                                     chunk_size=dim_chunk_val, 
+                                     function=epsilon_layer, 
+                                     mask_coef=self.mask_epsilon, 
+                                     device= self.device)
+        
         self.zonotope_espilon_sparse_tensor, self.sum_abs = evaluator.evaluate_all_chunks(num_workers=num_workers)
         self.len_zono = self.zonotope_espilon_sparse_tensor.size(0)
+        self.mask_epsilon = torch.ones_like(self.mask_epsilon)
 
-        trash_layer = self.details[f'noise_{name}']
+        _, new_sparse = ZonoSparseGeneration(self.trash,from_trash=True,start_index=self.len_zono).total_zono()
+        print(new_sparse)
         
-        self.trash = trash_layer(self.trash)
+        if new_sparse is not None:
+            evaluator_new_noise = SparseEvaluation(new_sparse,
+                                                   chunk_size = dim_chunk_val,
+                                                   function=epsilon_layer, 
+                                                   mask_coef = self.mask_epsilon,
+                                                   eval_start_index=self.len_zono,
+                                                   device =self.device)
+            new_sparse, sum = evaluator_new_noise.evaluate_all_chunks(num_workers=1)
+            self.sum_abs +=sum
+            zono_size = list(self.zonotope_espilon_sparse_tensor.size())
+            new_sparse_size = list(new_sparse.size())
+            print('new s size',new_sparse_size)
+            new_size  =[zono_size[0]+new_sparse_size[0],*zono_size[1:]]
+            print('new z size',new_size)
+            indices = torch.cat([self.zonotope_espilon_sparse_tensor.indices(), new_sparse.indices()], dim=1)
+            values = torch.cat([self.zonotope_espilon_sparse_tensor.values(), new_sparse.values()])
+            self.zonotope_espilon_sparse_tensor = torch.sparse_coo_tensor(indices, values, size = new_size).coalesce()
+        new_sparse = None
+
+
+
+        self.process_trash_layer()
+        
+        self.trash = torch.zeros_like(self.trash)
+
+
+    
+
     
     def evaluate_model(self, zonotope_espilon_sparse_tensor, num_workers=None):
+
+       
         if num_workers is None:
             num_workers = self.num_workers
         self.zonotope_espilon_sparse_tensor=zonotope_espilon_sparse_tensor
         results = {}
         self.mask_epsilon = torch.ones_like(self.input)
         self.trash = torch.zeros_like(self.input)
+
+
+
         for name, details in self.output.items():
             print(name)
             print(details)
+            self.name = name
             self.details = details
 
             if 'original' in details:
-                self.process_linear_layer(name)
-                print('name passed = ',name)
+                self.process_linear_layer()
+
+                print('name passed = ',self.name)
                 
                
-            activation_name = details.get('activation', None)
+            activation_name = self.details.get('activation', None)
 
 
             if activation_name:
@@ -96,22 +147,14 @@ class ModelEvaluator:
                 AbstractClass = globals().get(class_name)
                 if AbstractClass:
                     abstract_instance = AbstractClass()
-                    self.input, self.trash, self.mask_epsilon, new_sparse = abstract_instance.abstract_relu(
+                    self.input, self.trash, self.mask_epsilon= abstract_instance.abstract_relu(
                         self.input, self.sum_abs, self.trash, start_index=self.len_zono, add_symbol=True
                     )
-                    dim_chunk_val = self.dim_chunk()
-                    evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, chunk_size=dim_chunk_val, function= lambda x:x , mask_coef=self.mask_epsilon,device = self.device)
-                    self.zonotope_espilon_sparse_tensor, self.sum_abs = evaluator.evaluate_all_chunks(num_workers=num_workers)
-                    if new_sparse is not None:
-                        zono_size = list(self.zonotope_espilon_sparse_tensor.size())
-                        new_sparse_size = list(new_sparse.size())
-                        print("creation de nouveaux symbols",new_sparse_size[0])
-                        new_size  =[zono_size[0]+new_sparse_size[0],*zono_size[1:]]
-                        indices = torch.cat([self.zonotope_espilon_sparse_tensor.indices(), new_sparse.indices()], dim=1)
-                        values = torch.cat([self.zonotope_espilon_sparse_tensor.values(), new_sparse.values()])
-                        self.zonotope_espilon_sparse_tensor = torch.sparse_coo_tensor(indices, values, size = new_size).coalesce()
-                    print("nombre de symboles = ",self.zonotope_espilon_sparse_tensor.size())
-                    print(self.zonotope_espilon_sparse_tensor)
+
+                    
+                    
+                    
+
                     
         results = {
             'center': self.input,
@@ -163,17 +206,16 @@ pytorch_model = convert(onnx_model)
 model = pytorch_model
 
 """
-global device 
-device = torch.device('cpu')
+
 model = SimpleCNN()
 input_dim = (3,64,64
              )
-print(model)
+
 
 unstacked = UnStackNetwork(model, input_dim)
-
-print(*unstacked.output)
-
+print("*"*100)
+print("unstacked output ",*unstacked.output)
+print("*"*100)
 
 test_input = torch.randn(1, *input_dim)
 _,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.001).total_zono()
