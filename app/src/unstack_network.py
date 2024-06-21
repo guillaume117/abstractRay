@@ -24,9 +24,9 @@ class UnStackNetwork:
         def process_layer(self, name, layer, x):
             print(layer)
             if isinstance(layer, nn.Linear):
-                x = self.process_flatten(name, nn.Flatten(), x)
+                #x = self.process_flatten(name, nn.Flatten(), x)
                 x = nn.Flatten()(x)
-                x = self.process_linear_layer(name, layer, x)
+                x = self.process_linear_layer(name, nn.Sequential(nn.Flatten(),layer), x)
             elif isinstance(layer, nn.Conv2d):
                 x = self.process_conv_layer(name, layer, x)
             elif isinstance(layer, (nn.ReLU, nn.Sigmoid, nn.Tanh, nn.AdaptiveAvgPool2d, nn.MaxPool2d)):

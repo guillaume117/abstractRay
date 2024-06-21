@@ -17,8 +17,6 @@ from abstract_relu import AbstractReLU
 import random
 import numpy as np
 
-
-
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -136,7 +134,7 @@ class SimpleCNN(nn.Module):
         self.relu2 = nn.ReLU()
         
  
-        self.fc1 = nn.Linear(in_features=1179648, out_features=128)  
+        self.fc1 = nn.Linear(in_features=860672, out_features=128)  
         self.relu3 = nn.ReLU()
         self.fc2 = nn.Linear(in_features=128, out_features=10)  
         self.relu4 = nn.ReLU()
@@ -165,8 +163,10 @@ pytorch_model = convert(onnx_model)
 model = pytorch_model
 
 """
+global device 
+device = torch.device('cpu')
 model = SimpleCNN()
-input_dim = (3,192,192
+input_dim = (3,164,164
              )
 print(model)
 

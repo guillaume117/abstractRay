@@ -24,7 +24,7 @@ class AbstractReLU(nn.Module):
                       trash_layer:torch.Tensor,
                       start_index: int = None,
                       add_symbol:bool=False,
-                      device:torch.device=torch.device("cuda"))->Tuple[torch.Tensor, torch.Tensor, torch.Tensor ]:
+                      device:torch.device=torch.device("cpu"))->Tuple[torch.Tensor, torch.Tensor, torch.Tensor ]:
 
 
         x_center = x_center.to(device)

@@ -3,9 +3,10 @@ import torch
 import torch.nn.functional as F
 from torch.sparse import FloatTensor
 from typing import Callable
+import torch.nn as nn
 
 
-@ray.remote(num_gpus=1)
+@ray.remote#(num_gpus=1)
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, global_start_index, device):
         self.x_chunk = x_chunk.coalesce().to(device)
