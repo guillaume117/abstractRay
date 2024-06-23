@@ -16,7 +16,7 @@ class SparseWorker:
         self.device = device
 
     def process_chunk(self):
-        try:
+        #try:
             indices_x = self.x_chunk.indices().t()
             values_x = self.x_chunk.values()
 
@@ -27,13 +27,16 @@ class SparseWorker:
                 'indices': [],
                 'values': []
             }
-
+            print(self.x_chunk.size(0))
+            print(self.chunk_size)
             num_chunks = (self.x_chunk.size(0) + self.chunk_size - 1) // self.chunk_size
             print("num_chunks", num_chunks)
 
             for i in range(num_chunks):
                 with torch.no_grad():
+             
                     chunk_start = i * self.chunk_size
+                    print("chunck worker start ",chunk_start)
                     chunk_end = min((i + 1) * self.chunk_size, self.x_chunk.size(0))
                     print(f'chunk_start = {chunk_start} , chunk end = {chunk_end}')
 
@@ -85,8 +88,8 @@ class SparseWorker:
             global_values = torch.cat(global_storage['values'], dim=0)
 
             return global_indices, global_values
-        except Exception as e:
-            return e
+        #except Exception as e:
+         #   return e
 
 class SparseAddition:
     def __init__(self, x: FloatTensor, y: FloatTensor, chunk_size: int, device=torch.device('cpu')):
@@ -155,7 +158,7 @@ class SparseAddition:
                 torch.Size([worker_size_y] + self.dense_shape[1:])
             ).coalesce()
 
-            worker = SparseWorker.remote(worker_sparse_tensor_x, worker_sparse_tensor_y, operation, self.chunk_size, self.dense_shape, chunk_start, self.device)
+            worker = SparseWorker.remote(worker_sparse_tensor_x, worker_sparse_tensor_y,chunk_size= self.chunk_size,operation=operation,dense_shape= self.dense_shape,worker_start_index= chunk_start, device =self.device)
             workers.append(worker.process_chunk.remote())
 
         results = ray.get(workers)
@@ -183,5 +186,11 @@ sparse_addition = SparseAddition(tensor1, tensor2, chunk_size=1, device=torch.de
 result_add = sparse_addition.addition(num_workers=2)
 result_sub = sparse_addition.soustraction(num_workers=2)
 
+
+
 print(result_add)
 print(result_sub)
+
+print("addition test failed if different from 0",torch.sum(result_add.to_dense()-(tensor1+tensor2)))
+print("substraction test failed if different from 0",torch.sum(result_sub.to_dense()-(tensor1-tensor2)))
+
