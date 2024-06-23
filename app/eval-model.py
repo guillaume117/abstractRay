@@ -44,12 +44,22 @@ class ModelEvaluator:
         dense_memory_footprint = torch.prod(torch.tensor(self.input.shape)) *4/1e9
         return int(max(1,available_RAM//(3*dense_memory_footprint)))
     
+
+    @staticmethod
+    def static_dim_chunk(input,available_RAM):
+        dense_memory_footprint = torch.prod(torch.tensor(input.shape)) *4/1e9
+        return int(max(1,available_RAM//(3*dense_memory_footprint)))
+
+
     
     def process_center_layer(self):
 
         layer = self.details['original']
         self.input = layer(self.input)
 
+    @staticmethod   
+    def static_processe_center_layer(input, function):
+        return function(input)
 
     def process_trash_layer(self):
 
@@ -95,6 +105,7 @@ class ModelEvaluator:
         conv_3.weight.data = w_3
         conv_3.bias.data =  torch.zeros(dim_x)
 
+        ident = nn.Identity()
 
         c1=conv_0(self.input)
         evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
@@ -102,26 +113,89 @@ class ModelEvaluator:
                                      function=conv_0, 
                                      mask_coef=self.mask_epsilon, 
                                      device= self.device)
-        E1, S1 = evaluator.evaluate_all_chunks(num_workers=self.num_workers)
+        E1, S1 = ModelEvaluator.static_process_linear_layer(self.input, E1 ,t1 ,ident, m1 , ident,ident,self.num_workers, self.available_RAM, self.device)
+       #TODO 
+       
         len_E1 = E1.size(0)
 
-       
-        
-        
 
         x1, t1, m1= AbstractReLU.abstract_relu(
                         c1, S1, self.trash, start_index=len_E1, add_symbol=True
                     )
+        E1,S1 = ModelEvaluator.static_process_linear_layer(x1, E1 ,t1 ,ident, m1 , ident,ident,self.num_workers, self.available_RAM, self.device)
+        
 
+
+        c2 = ModelEvaluator.static_process_linear_layer(self.input,conv_1)
+        evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
+                                     chunk_size=self.dim_chunk(), 
+                                     function=conv_1, 
+                                     mask_coef=self.mask_epsilon, 
+                                     device= self.device)
+        E2, S2 = evaluator.evaluate_all_chunks(num_workers=self.num_workers)
+
+        x2, t2, m2= AbstractReLU.abstract_relu(
+                        c2, S1, self.trash, start_index=len_E1, add_symbol=True
+                    )
+        E1,S1 = ModelEvaluator.static_process_linear_layer(x1, E1 ,t1 ,ident, m1 , ident,ident,self.num_workers, self.available_RAM, self.device)
+
+
+
+    @staticmethod
+    def static_process_linear_layer(input, zono,trash,function_tot, mask_epsilon , function_abs,function_trash,num_workers, available_RAM, device):
+                
+        dim_chunk_val_input = ModelEvaluator.static_dim_chunk(input, available_RAM)
+        output  = ModelEvaluator.static_process_center_layer(input,function_tot)
+        dim_chunk_val_output = ModelEvaluator.static_dim_chunk(output,available_RAM)
+
+        dim_chunk_val = min(dim_chunk_val_input, dim_chunk_val_output)
+       
+    
+        evaluator = SparseEvaluation(zono,
+                                     chunk_size=dim_chunk_val, 
+                                     function=function_abs, 
+                                     mask_coef=mask_epsilon, 
+                                     device= device)
+        
+        zono, sum = evaluator.evaluate_all_chunks(num_workers=num_workers)
+        len_zono = zono.size(0)
+        mask_epsilon = torch.ones_like(mask_epsilon)
+
+        _, new_sparse = ZonoSparseGeneration(trash,from_trash=True,start_index=len_zono).total_zono()
+        print(new_sparse)
+        
+        if new_sparse is not None:
+            evaluator_new_noise = SparseEvaluation(new_sparse,
+                                                   chunk_size = dim_chunk_val,
+                                                   function=function_abs, 
+                                                   mask_coef = mask_epsilon,
+                                                   eval_start_index=len_zono,
+                                                   device =device)
+            new_sparse, sum = evaluator_new_noise.evaluate_all_chunks(num_workers=1)
+            sum_abs +=sum
+            zono_size = list(zono.size())
+            new_sparse_size = list(new_sparse.size())
+            print('new s size',new_sparse_size)
+            new_size  =[zono_size[0]+new_sparse_size[0],*zono_size[1:]]
+            print('new z size',new_size)
+            indices = torch.cat([zono.indices(), new_sparse.indices()], dim=1)
+            values = torch.cat([zono.values(), new_sparse.values()])
+            zono = torch.sparse_coo_tensor(indices, values, size = new_size).coalesce()
+        new_sparse = None
+
+
+
+        ModelEvaluator.static_process_trash_layer(output,function_trash)
+        
+        trash = torch.zeros_like(trash)
+        return zono, sum_abs
 
 
 
     def process_linear_layer(self, num_workers=None, epsilon_layer = None):
 
-        if num_workers is None:
-            num_workers=self.num_workers
-
-       
+        
+        
         
         dim_chunk_val_input = self.dim_chunk()
         self.process_center_layer()

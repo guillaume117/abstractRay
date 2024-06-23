@@ -23,6 +23,7 @@ class SparseWorker:
             indices_y = self.y_chunk.indices().t()
             values_y = self.y_chunk.values()
 
+
             global_storage = {
                 'indices': [],
                 'values': []
@@ -31,6 +32,7 @@ class SparseWorker:
             print(self.chunk_size)
             num_chunks = (self.x_chunk.size(0) + self.chunk_size - 1) // self.chunk_size
             print("num_chunks", num_chunks)
+            function_sum = None
 
             for i in range(num_chunks):
                 with torch.no_grad():
@@ -69,6 +71,11 @@ class SparseWorker:
                         func_output = chunk_dense_x + chunk_dense_y
                     elif self.operation == 'soustraction':
                         func_output = chunk_dense_x - chunk_dense_y
+                    func_sum = torch.abs(func_output).sum(dim=0)
+                    if function_sum is None:
+                        function_sum = func_sum
+                    else:
+                        function_sum += func_sum
 
                     func_output_sparse = func_output.to_sparse().coalesce()
                     add_indices = func_output_sparse.indices().to(torch.int32) + torch.tensor(
@@ -87,7 +94,7 @@ class SparseWorker:
             global_indices = torch.cat(global_storage['indices'], dim=1)
             global_values = torch.cat(global_storage['values'], dim=0)
 
-            return global_indices, global_values
+            return global_indices, global_values, function_sum
         #except Exception as e:
          #   return e
 
@@ -164,18 +171,23 @@ class SparseAddition:
         results = ray.get(workers)
         global_indices = []
         global_values = []
+        function_sum = None
 
-        for add_indices, func_values in results:
+        for add_indices, func_values, func_sum in results:
             global_indices.append(add_indices)
             global_values.append(func_values)
+            if function_sum is None:
+                function_sum = func_sum
+            else:
+                function_sum += func_sum
 
         global_indices = torch.cat(global_indices, dim=1)
         global_values = torch.cat(global_values, dim=0)
 
         global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=torch.Size(self.common_size)).coalesce().to('cpu')
 
-        return global_sparse_tensor
-
+        return global_sparse_tensor, function_sum
+ 
 # Exemple d'utilisation
 #tensor1 = torch.sparse.FloatTensor(torch.randint(0, 10, (4, 20)), torch.randn(20), (10, 3, 64, 64))
 #tensor2 = torch.sparse.FloatTensor(torch.randint(0, 12, (4, 30)), torch.randn(30), (12, 3, 64, 64))
@@ -183,14 +195,14 @@ tensor1 = torch.randn(10,3,64,64).to_sparse_coo()
 tensor2 = torch.randn(10,3,64,64).to_sparse_coo()
 
 sparse_addition = SparseAddition(tensor1, tensor2, chunk_size=1, device=torch.device('cpu'))
-result_add = sparse_addition.addition(num_workers=2)
-result_sub = sparse_addition.soustraction(num_workers=2)
+result_add, sum1 = sparse_addition.addition(num_workers=2)
+result_sub ,sum2 = sparse_addition.soustraction(num_workers=2)
 
 
 
 print(result_add)
 print(result_sub)
-
+print(sum1.size)
 print("addition test failed if different from 0",torch.sum(result_add.to_dense()-(tensor1+tensor2)))
 print("substraction test failed if different from 0",torch.sum(result_sub.to_dense()-(tensor1-tensor2)))
 
