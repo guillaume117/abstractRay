@@ -69,7 +69,7 @@ class SparseWorker:
 
                     if self.operation == 'addition':
                         func_output = chunk_dense_x + chunk_dense_y
-                    elif self.operation == 'soustraction':
+                    elif self.operation == 'substraction':
                         func_output = chunk_dense_x - chunk_dense_y
                     func_sum = torch.abs(func_output).sum(dim=0)
                     if function_sum is None:
@@ -100,8 +100,9 @@ class SparseWorker:
 
 class SparseAddition:
     def __init__(self, x: FloatTensor, y: FloatTensor, chunk_size: int, device=torch.device('cpu')):
+
         # Ajuster les dimensions des tenseurs d'origine pour qu'elles soient égales à la plus grande dimension
-        max_batch_size = max(x.size(0), y.size(0))
+        max_batch_size = max(x.shape[0], y.shape[0])
         self.common_size = [max_batch_size] + list(x.size()[1:])
         self.x = x.coalesce()
         self.y = y.coalesce()
@@ -113,7 +114,7 @@ class SparseAddition:
         self.device = device
 
     def _adjust_tensor_size(self) -> FloatTensor:
-        if self.x.size(0) < self.common_size[0]:
+        if self.x.shape[0] <= self.common_size[0]:
             self.x.size = self.common_size
         else:
             self.y.size = self.common_size
@@ -123,8 +124,8 @@ class SparseAddition:
     def addition(self, num_workers):
         return self._operate('addition', num_workers)
 
-    def soustraction(self, num_workers):
-        return self._operate('soustraction', num_workers)
+    def substraction(self, num_workers):
+        return self._operate('substraction', num_workers)
 
     def _operate(self, operation, num_workers):
         indices_x = self.x.indices()
@@ -187,8 +188,7 @@ class SparseAddition:
         global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=torch.Size(self.common_size)).coalesce().to('cpu')
 
         return global_sparse_tensor, function_sum
- 
-# Exemple d'utilisation
+"""
 #tensor1 = torch.sparse.FloatTensor(torch.randint(0, 10, (4, 20)), torch.randn(20), (10, 3, 64, 64))
 #tensor2 = torch.sparse.FloatTensor(torch.randint(0, 12, (4, 30)), torch.randn(30), (12, 3, 64, 64))
 tensor1 = torch.randn(10,3,64,64).to_sparse_coo()
@@ -196,7 +196,7 @@ tensor2 = torch.randn(10,3,64,64).to_sparse_coo()
 
 sparse_addition = SparseAddition(tensor1, tensor2, chunk_size=1, device=torch.device('cpu'))
 result_add, sum1 = sparse_addition.addition(num_workers=2)
-result_sub ,sum2 = sparse_addition.soustraction(num_workers=2)
+result_sub ,sum2 = sparse_addition.substraction(num_workers=2)
 
 
 
@@ -206,3 +206,4 @@ print(sum1.size)
 print("addition test failed if different from 0",torch.sum(result_add.to_dense()-(tensor1+tensor2)))
 print("substraction test failed if different from 0",torch.sum(result_sub.to_dense()-(tensor1-tensor2)))
 
+"""

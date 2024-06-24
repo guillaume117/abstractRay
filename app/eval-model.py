@@ -14,6 +14,7 @@ from sparse_evaluation_3 import SparseEvaluation
 from zono_sparse_gen import ZonoSparseGeneration
 from unstack_network import UnStackNetwork
 from abstract_relu import AbstractReLU
+from sparse_addition import SparseAddition
 import random
 import numpy as np
 
@@ -55,10 +56,11 @@ class ModelEvaluator:
     def process_center_layer(self):
 
         layer = self.details['original']
+        print(layer)
         self.input = layer(self.input)
 
     @staticmethod   
-    def static_processe_center_layer(input, function):
+    def static_process_center_layer(input, function):
         return function(input)
 
     def process_trash_layer(self):
@@ -66,16 +68,23 @@ class ModelEvaluator:
         trash_layer = self.details[f'noise_{self.name}']
         self.trash = trash_layer(self.trash)
     
+    @staticmethod
+    def static_process_trash_layer(input,function):
+        return function(input)
 
 
     def process_max_pool2D(self,maxpool,numworkers= None):
-        dim_x = self.input.size[1]
+        if numworkers is None: 
+            num_workers = self.num_workers
+
+        dim_x = self.input.size(1)
         kernel_size = maxpool.kernel_size
         
         assert kernel_size==2,f"Maxpool2D kernel size {kernel_size}. A kernel size different of 2 is not supported"
         
         stride = maxpool.stride
-        padding = maxpool.paddingkernel_size = 2
+        padding = maxpool.padding
+        kernel_size = 2
 
 
 
@@ -107,46 +116,107 @@ class ModelEvaluator:
 
         ident = nn.Identity()
 
-        c1=conv_0(self.input)
-        evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
-                                     chunk_size=self.dim_chunk(), 
-                                     function=conv_0, 
-                                     mask_coef=self.mask_epsilon, 
-                                     device= self.device)
-        E1, S1 = ModelEvaluator.static_process_linear_layer(self.input, E1 ,t1 ,ident, m1 , ident,ident,self.num_workers, self.available_RAM, self.device)
-       #TODO 
-       
+
+
+        E1, S1,c1, t1 = ModelEvaluator.static_process_linear_layer(self.input,
+                                                            self.zonotope_espilon_sparse_tensor,
+                                                            self.trash,
+                                                            conv_0,
+                                                            self.mask_epsilon ,
+                                                            conv_0,
+                                                            conv_0,
+                                                            self.num_workers,
+                                                            self.available_RAM,
+                                                            self.device)
+        
+        print("&"*100)
+        print(torch.sum(t1))
+        print(torch.sum(c1))
+        
         len_E1 = E1.size(0)
-
-
         x1, t1, m1= AbstractReLU.abstract_relu(
-                        c1, S1, self.trash, start_index=len_E1, add_symbol=True
+                        c1, S1,t1, start_index=len_E1, add_symbol=True
                     )
-        E1,S1 = ModelEvaluator.static_process_linear_layer(x1, E1 ,t1 ,ident, m1 , ident,ident,self.num_workers, self.available_RAM, self.device)
+        E1,S1,c1, t1 = ModelEvaluator.static_process_linear_layer(x1, E1 ,t1 ,ident, m1 , ident,ident,self.num_workers, self.available_RAM, self.device)
         
 
+        E2, S2, c2, t2 = ModelEvaluator.static_process_linear_layer(self.input,
+                                                            self.zonotope_espilon_sparse_tensor,
+                                                            self.trash,
+                                                            conv_1,
+                                                            self.mask_epsilon,
+                                                            conv_1,
+                                                            conv_1,
+                                                            self.num_workers,
+                                                            self.available_RAM,
+                                                            self.device)
+        
+        len_E2 = E2.size(0)
+        E1,S1 = SparseAddition(E1, E2, chunk_size=1, device=self.device).addition(num_workers=self.num_workers)
+        c1 =c1+c2
+        t1 =torch.abs(t1)+torch.abs(t2)
+        E2, S2, c2, t2 = ModelEvaluator.static_process_linear_layer(self.input,
+                                                    self.zonotope_espilon_sparse_tensor,
+                                                    self.trash,
+                                                    conv_2,
+                                                    self.mask_epsilon ,
+                                                    conv_2,
+                                                    conv_2,
+                                                    self.num_workers,
+                                                    self.available_RAM,
+                                                    self.device)
+        
+        E2,S2 = SparseAddition(E2, E1, chunk_size=1, device=self.device).substraction(num_workers=self.num_workers)
+        c2 =c2-c1
+        t2 =torch.abs(t1)+torch.abs(t2)
 
-        c2 = ModelEvaluator.static_process_linear_layer(self.input,conv_1)
-        evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
-                                     chunk_size=self.dim_chunk(), 
-                                     function=conv_1, 
-                                     mask_coef=self.mask_epsilon, 
-                                     device= self.device)
-        E2, S2 = evaluator.evaluate_all_chunks(num_workers=self.num_workers)
-
-        x2, t2, m2= AbstractReLU.abstract_relu(
-                        c2, S1, self.trash, start_index=len_E1, add_symbol=True
+        len_E2 = E2.size(0)
+        x3, t3, m3= AbstractReLU.abstract_relu(
+                        c2, S2,t2, start_index=len_E2, add_symbol=True
                     )
-        E1,S1 = ModelEvaluator.static_process_linear_layer(x1, E1 ,t1 ,ident, m1 , ident,ident,self.num_workers, self.available_RAM, self.device)
+        E3,S3,c3,t3 = ModelEvaluator.static_process_linear_layer(x3, E2 ,t3 ,ident, m3 , ident,ident,self.num_workers, self.available_RAM, self.device)
+
+        E3,S3 = SparseAddition(E3, E1, chunk_size=1, device=self.device).addition(num_workers=self.num_workers)
+        c3 =c3+c1
+        t3 =torch.abs(t3)+torch.abs(t1)
+
+        E2, S2,c2, t2 = ModelEvaluator.static_process_linear_layer(self.input,
+                                                            self.zonotope_espilon_sparse_tensor,
+                                                            self.trash,
+                                                            conv_3,
+                                                            self.mask_epsilon ,
+                                                            conv_3,
+                                                            conv_3,
+                                                            self.num_workers,
+                                                            self.available_RAM,
+                                                            self.device)
+        
+        E2,S2 = SparseAddition(E2, E3, chunk_size=1, device=self.device).substraction(num_workers=self.num_workers)
+        c2 =c2-c3
+        t2 =torch.abs(t3)+torch.abs(t2)
+        len_E2 = E2.size(0)
+        x4, t4, m4= AbstractReLU.abstract_relu(
+                        c2, S2,t2, start_index=len_E2, add_symbol=True
+                    )
+       
+        
+        E4,S4,c4,t4 = ModelEvaluator.static_process_linear_layer(x4, E2 ,t4 ,ident, m4 , ident,ident,self.num_workers, self.available_RAM, self.device)
+
+        
+       
+        E4,S4 = SparseAddition(E4, E3, chunk_size=1, device=self.device).addition(num_workers=self.num_workers)
+
+        print(E4.size())
+        return E4,S4, c4 +c3, torch.abs(t4)+torch.abs(t3)
 
 
 
     @staticmethod
     def static_process_linear_layer(input, zono,trash,function_tot, mask_epsilon , function_abs,function_trash,num_workers, available_RAM, device):
-                
+        sum_abs =0
         dim_chunk_val_input = ModelEvaluator.static_dim_chunk(input, available_RAM)
-        output  = ModelEvaluator.static_process_center_layer(input,function_tot)
-        dim_chunk_val_output = ModelEvaluator.static_dim_chunk(output,available_RAM)
+        center  = ModelEvaluator.static_process_center_layer(input,function_tot)
+        dim_chunk_val_output = ModelEvaluator.static_dim_chunk(center,available_RAM)
 
         dim_chunk_val = min(dim_chunk_val_input, dim_chunk_val_output)
        
@@ -185,16 +255,17 @@ class ModelEvaluator:
 
 
 
-        ModelEvaluator.static_process_trash_layer(output,function_trash)
+        trash = ModelEvaluator.static_process_trash_layer(trash,function_trash)
         
         trash = torch.zeros_like(trash)
-        return zono, sum_abs
+        return zono, sum_abs,center, trash
 
 
 
     def process_linear_layer(self, num_workers=None, epsilon_layer = None):
 
-        
+        if num_workers is None:
+            num_workers =self.num_workers
         
         
         dim_chunk_val_input = self.dim_chunk()
@@ -253,6 +324,8 @@ class ModelEvaluator:
        
         if num_workers is None:
             num_workers = self.num_workers
+            
+  
         self.zonotope_espilon_sparse_tensor=zonotope_espilon_sparse_tensor
         results = {}
         self.mask_epsilon = torch.ones_like(self.input)
@@ -267,6 +340,7 @@ class ModelEvaluator:
             self.details = details
 
             if 'original' in details:
+
                 self.process_linear_layer()
 
                 print('name passed = ',self.name)
@@ -276,14 +350,18 @@ class ModelEvaluator:
 
 
             if activation_name:
-                class_name = f"Abstract{activation_name}"
-                print(f'class_name= {class_name}')
-                AbstractClass = globals().get(class_name)
-                if AbstractClass:
-                    abstract_instance = AbstractClass()
-                    self.input, self.trash, self.mask_epsilon= abstract_instance.abstract_relu(
-                        self.input, self.sum_abs, self.trash, start_index=self.len_zono, add_symbol=True
-                    )
+                if activation_name == 'MaxPool2d':
+                    self.zonotope_espilon_sparse_tensor,self.sum_abs,self.input,self.trash = self.process_max_pool2D(self.details['activation_function'])
+                    self.mask_epsilon = torch.ones_like(self.input)
+                else : 
+                    class_name = f"Abstract{activation_name}"
+                    print(f'class_name= {class_name}')
+                    AbstractClass = globals().get(class_name)
+                    if AbstractClass:
+                        abstract_instance = AbstractClass()
+                        self.input, self.trash, self.mask_epsilon= abstract_instance.abstract_relu(
+                            self.input, self.sum_abs, self.trash, start_index=self.len_zono, add_symbol=True
+                        )
 
                     
                     
@@ -307,11 +385,12 @@ class SimpleCNN(nn.Module):
 
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.relu1 = nn.ReLU()
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
-        self.relu2 = nn.ReLU()
+        #self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        #self.relu2 = nn.ReLU()
+        self.maxpool2D = nn.MaxPool2d(kernel_size=2,stride=2,padding=0)
         
  
-        self.fc1 = nn.Linear(in_features=131072, out_features=128)  
+        self.fc1 = nn.Linear(in_features=400, out_features=128)  
         self.relu3 = nn.ReLU()
         self.fc2 = nn.Linear(in_features=128, out_features=10)  
         self.relu4 = nn.ReLU()
@@ -320,11 +399,12 @@ class SimpleCNN(nn.Module):
 
         x = self.relu1(self.conv1(x))
 
-        x = self.relu2(self.conv2(x))
+        #x = self.relu2(self.conv2(x))
  
 
-  
+        x=self.maxpool2D(x)
         x = x.view(x.size(0), -1)
+        print(x.shape)
     
         x = self.relu3(self.fc1(x))
       
@@ -342,20 +422,22 @@ model = pytorch_model
 """
 
 model = SimpleCNN()
-input_dim = (3,64,64
+input_dim = (3,10,10
              )
 
 
+
+print(model(torch.randn(1,3,10,10)))
 unstacked = UnStackNetwork(model, input_dim)
 print("*"*100)
 print("unstacked output ",*unstacked.output)
 print("*"*100)
 
 test_input = torch.randn(1, *input_dim)
-_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.001).total_zono()
+_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.0001).total_zono()
 print(zonotope_espilon_sparse_tensor)
 ray.init()
-model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=1, available_RAM=5,device=torch.device('cpu'))
+model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=1, available_RAM=0.001,device=torch.device('cpu'))
 
 result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)
 

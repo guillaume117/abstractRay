@@ -74,7 +74,8 @@ class UnStackNetwork:
 
     def process_activation_layer(self, name, layer, x):
         self.output[name] = {
-            'activation': layer.__class__.__name__
+            'activation': layer.__class__.__name__,
+            'activation_function':layer
         }
      
       
