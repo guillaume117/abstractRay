@@ -128,10 +128,7 @@ class ModelEvaluator:
                                                             self.num_workers,
                                                             self.available_RAM,
                                                             self.device)
-        
-        print("&"*100)
-        print(torch.sum(t1))
-        print(torch.sum(c1))
+    
         
         len_E1 = E1.size(0)
         x1, t1, m1= AbstractReLU.abstract_relu(
@@ -152,7 +149,8 @@ class ModelEvaluator:
                                                             self.device)
         
         len_E2 = E2.size(0)
-        E1,S1 = SparseAddition(E1, E2, chunk_size=1, device=self.device).addition(num_workers=self.num_workers)
+        chunk_size = ModelEvaluator.static_dim_chunk(c2,self.available_RAM)
+        E1,S1 = SparseAddition(E1, E2, chunk_size=chunk_size, device=self.device).addition(num_workers=self.num_workers)
         c1 =c1+c2
         t1 =torch.abs(t1)+torch.abs(t2)
         E2, S2, c2, t2 = ModelEvaluator.static_process_linear_layer(self.input,
@@ -165,8 +163,8 @@ class ModelEvaluator:
                                                     self.num_workers,
                                                     self.available_RAM,
                                                     self.device)
-        
-        E2,S2 = SparseAddition(E2, E1, chunk_size=1, device=self.device).substraction(num_workers=self.num_workers)
+        chunk_size = ModelEvaluator.static_dim_chunk(c2,self.available_RAM)
+        E2,S2 = SparseAddition(E2, E1, chunk_size=chunk_size, device=self.device).substraction(num_workers=self.num_workers)
         c2 =c2-c1
         t2 =torch.abs(t1)+torch.abs(t2)
 
@@ -175,8 +173,8 @@ class ModelEvaluator:
                         c2, S2,t2, start_index=len_E2, add_symbol=True
                     )
         E3,S3,c3,t3 = ModelEvaluator.static_process_linear_layer(x3, E2 ,t3 ,ident, m3 , ident,ident,self.num_workers, self.available_RAM, self.device)
-
-        E3,S3 = SparseAddition(E3, E1, chunk_size=1, device=self.device).addition(num_workers=self.num_workers)
+        chunk_size = ModelEvaluator.static_dim_chunk(c3,self.available_RAM)
+        E3,S3 = SparseAddition(E3, E1, chunk_size=chunk_size, device=self.device).addition(num_workers=self.num_workers)
         c3 =c3+c1
         t3 =torch.abs(t3)+torch.abs(t1)
 
@@ -190,8 +188,8 @@ class ModelEvaluator:
                                                             self.num_workers,
                                                             self.available_RAM,
                                                             self.device)
-        
-        E2,S2 = SparseAddition(E2, E3, chunk_size=1, device=self.device).substraction(num_workers=self.num_workers)
+        chunk_size = ModelEvaluator.static_dim_chunk(c2,self.available_RAM)
+        E2,S2 = SparseAddition(E2, E3, chunk_size=chunk_size, device=self.device).substraction(num_workers=self.num_workers)
         c2 =c2-c3
         t2 =torch.abs(t3)+torch.abs(t2)
         len_E2 = E2.size(0)
@@ -203,8 +201,8 @@ class ModelEvaluator:
         E4,S4,c4,t4 = ModelEvaluator.static_process_linear_layer(x4, E2 ,t4 ,ident, m4 , ident,ident,self.num_workers, self.available_RAM, self.device)
 
         
-       
-        E4,S4 = SparseAddition(E4, E3, chunk_size=1, device=self.device).addition(num_workers=self.num_workers)
+        chunk_size = ModelEvaluator.static_dim_chunk(c4,self.available_RAM)
+        E4,S4 = SparseAddition(E4, E3, chunk_size=chunk_size, device=self.device).addition(num_workers=self.num_workers)
 
         print(E4.size())
         return E4,S4, c4 +c3, torch.abs(t4)+torch.abs(t3)
@@ -245,9 +243,9 @@ class ModelEvaluator:
             sum_abs +=sum
             zono_size = list(zono.size())
             new_sparse_size = list(new_sparse.size())
-            print('new s size',new_sparse_size)
+         
             new_size  =[zono_size[0]+new_sparse_size[0],*zono_size[1:]]
-            print('new z size',new_size)
+   
             indices = torch.cat([zono.indices(), new_sparse.indices()], dim=1)
             values = torch.cat([zono.values(), new_sparse.values()])
             zono = torch.sparse_coo_tensor(indices, values, size = new_size).coalesce()
@@ -276,6 +274,8 @@ class ModelEvaluator:
         if epsilon_layer is None : 
 
             epsilon_layer = self.details[f'epsilon_{self.name}']
+            print("8"*100)
+            print(epsilon_layer)
     
         evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
                                      chunk_size=dim_chunk_val, 
@@ -288,7 +288,7 @@ class ModelEvaluator:
         self.mask_epsilon = torch.ones_like(self.mask_epsilon)
 
         _, new_sparse = ZonoSparseGeneration(self.trash,from_trash=True,start_index=self.len_zono).total_zono()
-        print(new_sparse)
+      
         
         if new_sparse is not None:
             evaluator_new_noise = SparseEvaluation(new_sparse,
@@ -301,9 +301,9 @@ class ModelEvaluator:
             self.sum_abs +=sum
             zono_size = list(self.zonotope_espilon_sparse_tensor.size())
             new_sparse_size = list(new_sparse.size())
-            print('new s size',new_sparse_size)
+           
             new_size  =[zono_size[0]+new_sparse_size[0],*zono_size[1:]]
-            print('new z size',new_size)
+            
             indices = torch.cat([self.zonotope_espilon_sparse_tensor.indices(), new_sparse.indices()], dim=1)
             values = torch.cat([self.zonotope_espilon_sparse_tensor.values(), new_sparse.values()])
             self.zonotope_espilon_sparse_tensor = torch.sparse_coo_tensor(indices, values, size = new_size).coalesce()
@@ -342,6 +342,7 @@ class ModelEvaluator:
             if 'original' in details:
 
                 self.process_linear_layer()
+                self.mask_epsilon = torch.ones_like(self.input)
 
                 print('name passed = ',self.name)
                 
@@ -353,6 +354,7 @@ class ModelEvaluator:
                 if activation_name == 'MaxPool2d':
                     self.zonotope_espilon_sparse_tensor,self.sum_abs,self.input,self.trash = self.process_max_pool2D(self.details['activation_function'])
                     self.mask_epsilon = torch.ones_like(self.input)
+                
                 else : 
                     class_name = f"Abstract{activation_name}"
                     print(f'class_name= {class_name}')
@@ -385,12 +387,14 @@ class SimpleCNN(nn.Module):
 
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.relu1 = nn.ReLU()
-        #self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
-        #self.relu2 = nn.ReLU()
-        self.maxpool2D = nn.MaxPool2d(kernel_size=2,stride=2,padding=0)
+        
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.relu2 = nn.ReLU()
+        self.maxpool2D = nn.MaxPool2d(kernel_size=2,stride=2)
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(5,5))
         
  
-        self.fc1 = nn.Linear(in_features=400, out_features=128)  
+        self.fc1 = nn.Linear(in_features=800, out_features=128)  
         self.relu3 = nn.ReLU()
         self.fc2 = nn.Linear(in_features=128, out_features=10)  
         self.relu4 = nn.ReLU()
@@ -398,14 +402,19 @@ class SimpleCNN(nn.Module):
     def forward(self, x):
 
         x = self.relu1(self.conv1(x))
+        
 
-        #x = self.relu2(self.conv2(x))
- 
+        x = self.relu2(self.conv2(x))
+
+       
 
         x=self.maxpool2D(x)
-        x = x.view(x.size(0), -1)
+        
+       
+        x = self.avgpool(x)
+        print("3"*100)
         print(x.shape)
-    
+        x = x.view(x.size(0), -1)
         x = self.relu3(self.fc1(x))
       
         x = self.relu4(self.fc2(x))
@@ -422,22 +431,24 @@ model = pytorch_model
 """
 
 model = SimpleCNN()
-input_dim = (3,10,10
+
+input_dim = (3,52,52
              )
 
 
 
-print(model(torch.randn(1,3,10,10)))
+
 unstacked = UnStackNetwork(model, input_dim)
 print("*"*100)
 print("unstacked output ",*unstacked.output)
 print("*"*100)
 
 test_input = torch.randn(1, *input_dim)
-_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.0001).total_zono()
+print(f"True:{model(test_input)}")
+_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.01).total_zono()
 print(zonotope_espilon_sparse_tensor)
 ray.init()
-model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=1, available_RAM=0.001,device=torch.device('cpu'))
+model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=5, available_RAM=1,device=torch.device('cpu'))
 
 result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)
 

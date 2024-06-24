@@ -21,7 +21,7 @@ class SparseWorker:
         self.device = device
 
     def evaluate_chunks(self):
-        try:
+        #try:
             indices = self.x_chunk.indices().t()
             values = self.x_chunk.values()
 
@@ -32,7 +32,7 @@ class SparseWorker:
             function_sum = None
 
             num_chunks = (self.x_chunk.size(0) + self.chunk_size - 1) // self.chunk_size
-            print("num_chunks", num_chunks)
+         
 
             for i in range(num_chunks):
                 with torch.no_grad():
@@ -46,7 +46,7 @@ class SparseWorker:
 
                     chunk_values = values[mask]
                     chunk_size = chunk_end - chunk_start
-                    print(chunk_size)
+                    
 
                     chunk_sparse_tensor = torch.sparse_coo_tensor(
                         chunk_indices.t(), chunk_values,
@@ -80,8 +80,8 @@ class SparseWorker:
             global_values = torch.cat(global_storage['values'], dim=0)
 
             return global_indices, global_values, function_sum
-        except Exception as e:
-            return e
+        #except Exception as e:
+        #    return e
 
 
 class SparseEvaluation:
@@ -133,7 +133,7 @@ class SparseEvaluation:
                 worker_indices.t(), worker_values,
                 torch.Size([worker_size] + self.dense_shape[1:])
             ).coalesce()
-            print(worker_sparse_tensor.size())
+
 
             worker = SparseWorker.remote(worker_sparse_tensor, self.chunk_size, self.mask_coef, self.function, self.dense_shape, chunk_start, self.device)
             workers.append(worker.evaluate_chunks.remote())

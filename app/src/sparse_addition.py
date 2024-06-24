@@ -28,19 +28,18 @@ class SparseWorker:
                 'indices': [],
                 'values': []
             }
-            print(self.x_chunk.size(0))
-            print(self.chunk_size)
+     
             num_chunks = (self.x_chunk.size(0) + self.chunk_size - 1) // self.chunk_size
-            print("num_chunks", num_chunks)
+         
             function_sum = None
 
             for i in range(num_chunks):
                 with torch.no_grad():
              
                     chunk_start = i * self.chunk_size
-                    print("chunck worker start ",chunk_start)
+                  
                     chunk_end = min((i + 1) * self.chunk_size, self.x_chunk.size(0))
-                    print(f'chunk_start = {chunk_start} , chunk end = {chunk_end}')
+           
 
                     mask_x = (indices_x[:, 0] >= chunk_start) & (indices_x[:, 0] < chunk_end)
                     chunk_indices_x = indices_x[mask_x]
@@ -71,6 +70,8 @@ class SparseWorker:
                         func_output = chunk_dense_x + chunk_dense_y
                     elif self.operation == 'substraction':
                         func_output = chunk_dense_x - chunk_dense_y
+                    elif self.operation == 'concat':
+                        func_output =  torch.cat((chunk_dense_x,chunk_dense_y),dim=1)
                     func_sum = torch.abs(func_output).sum(dim=0)
                     if function_sum is None:
                         function_sum = func_sum
@@ -126,6 +127,9 @@ class SparseAddition:
 
     def substraction(self, num_workers):
         return self._operate('substraction', num_workers)
+    
+    def concat(self, num_workers):
+        return self._operate('concat',num_workers)
 
     def _operate(self, operation, num_workers):
         indices_x = self.x.indices()

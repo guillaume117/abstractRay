@@ -26,7 +26,11 @@ class UnStackNetwork:
             x = self.process_linear_layer(name, nn.Sequential(nn.Flatten(), layer), x)
         elif isinstance(layer, nn.Conv2d):
             x = self.process_conv_layer(name, layer, x)
-        elif isinstance(layer, (nn.ReLU, nn.Sigmoid, nn.Tanh, nn.AdaptiveAvgPool2d, nn.MaxPool2d)):
+
+        elif isinstance(layer,nn.AdaptiveAvgPool2d):
+            x  = self.process_avgpool_layer(name,layer,x)
+            print(x.shape)
+        elif isinstance(layer, (nn.ReLU, nn.Sigmoid, nn.Tanh, nn.MaxPool2d)):
             x = self.process_activation_layer(name, layer, x)
         elif isinstance(layer, nn.Flatten):
             x = self.process_flatten(name, layer, x)
@@ -71,6 +75,17 @@ class UnStackNetwork:
             'output_dim': self.compute_output_dim(layer, x)
         }
         return layer(x)
+    
+    def process_avgpool_layer(self, name, layer, x):
+        self.output[name] = {
+            'type': type(layer),
+            'original': copy.deepcopy(layer),
+            'epsilon_{}'.format(name): copy.deepcopy(layer),
+            'noise_{}'.format(name): copy.deepcopy(layer),
+            'output_dim': self.compute_output_dim(layer, x)
+        }
+        return layer(x)
+
 
     def process_activation_layer(self, name, layer, x):
         self.output[name] = {
