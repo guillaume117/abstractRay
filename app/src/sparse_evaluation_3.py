@@ -21,6 +21,7 @@ class SparseWorker:
         self.device = device
 
     def evaluate_chunks(self):
+            
         #try:
             indices = self.x_chunk.indices().t()
             values = self.x_chunk.values()
@@ -64,7 +65,7 @@ class SparseWorker:
 
                     func_output_sparse = func_output.to_sparse().coalesce()
                     add_indices = func_output_sparse.indices().to(torch.int32) + torch.tensor(
-                        [[chunk_start + self.worker_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=torch.int32, device=self.device
+                        [[chunk_start + self.worker_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=torch.int32, device=torch.device('cpu')
                     )
 
                     global_storage['indices'].append(add_indices.cpu())

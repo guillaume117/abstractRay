@@ -42,7 +42,8 @@ class ModelEvaluator:
     def dim_chunk(self, available_RAM=None):
         if available_RAM is None:
             available_RAM = self.available_RAM
-        dense_memory_footprint = torch.prod(torch.tensor(self.input.shape)) *4/1e9
+        dense_memory_footprint = torch.prod(torch.tensor(self.input.shape)) *4/1e9      print("3"*100)
+        print(x.shape)
         return int(max(1,available_RAM//(3*dense_memory_footprint)))
     
 
@@ -432,7 +433,7 @@ model = pytorch_model
 
 model = SimpleCNN()
 
-input_dim = (3,52,52
+input_dim = (3,224,224
              )
 
 
