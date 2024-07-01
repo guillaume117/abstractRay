@@ -15,6 +15,7 @@ from zono_sparse_gen import ZonoSparseGeneration
 from unstack_network import UnStackNetwork
 from abstract_relu import AbstractReLU
 from sparse_addition import SparseAddition
+from sparse_conv2D import SparseConv2D,conv2d_to_sparseconv2d
 import random
 import numpy as np
 
@@ -30,6 +31,8 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 set_seed(42)
+
+
 class ModelEvaluator:
 
     def __init__(self, unstacked_model, input,num_workers = 1,available_RAM = 8, device =torch.device('cpu')):
@@ -42,8 +45,8 @@ class ModelEvaluator:
     def dim_chunk(self, available_RAM=None):
         if available_RAM is None:
             available_RAM = self.available_RAM
-        dense_memory_footprint = torch.prod(torch.tensor(self.input.shape)) *4/1e9      print("3"*100)
-        print(x.shape)
+        dense_memory_footprint = torch.prod(torch.tensor(self.input.shape)) *4/1e9     
+        
         return int(max(1,available_RAM//(3*dense_memory_footprint)))
     
 
@@ -277,14 +280,19 @@ class ModelEvaluator:
             epsilon_layer = self.details[f'epsilon_{self.name}']
             print("8"*100)
             print(epsilon_layer)
-    
-        evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
-                                     chunk_size=dim_chunk_val, 
-                                     function=epsilon_layer, 
-                                     mask_coef=self.mask_epsilon, 
-                                     device= self.device)
-        
-        self.zonotope_espilon_sparse_tensor, self.sum_abs = evaluator.evaluate_all_chunks(num_workers=num_workers)
+        if isinstance(epsilon_layer,nn.Conv2d):
+            sparse_conv2d = conv2d_to_sparseconv2d(epsilon_layer)
+            sparse_conv2d.bias = None
+            self.zonotope_espilon_sparse_tensor,self.sum_abs = sparse_conv2d(self.zonotope_espilon_sparse_tensor,mask=self.mask_epsilon)
+            self.sum_abs = self.sum_abs.unsqueeze(0)
+        else :
+            evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
+                                        chunk_size=dim_chunk_val, 
+                                        function=epsilon_layer, 
+                                        mask_coef=self.mask_epsilon, 
+                                        device= self.device)
+            
+            self.zonotope_espilon_sparse_tensor, self.sum_abs = evaluator.evaluate_all_chunks(num_workers=num_workers)
         self.len_zono = self.zonotope_espilon_sparse_tensor.size(0)
         self.mask_epsilon = torch.ones_like(self.mask_epsilon)
 
@@ -292,13 +300,18 @@ class ModelEvaluator:
       
         
         if new_sparse is not None:
-            evaluator_new_noise = SparseEvaluation(new_sparse,
-                                                   chunk_size = dim_chunk_val,
-                                                   function=epsilon_layer, 
-                                                   mask_coef = self.mask_epsilon,
-                                                   eval_start_index=self.len_zono,
-                                                   device =self.device)
-            new_sparse, sum = evaluator_new_noise.evaluate_all_chunks(num_workers=1)
+            if isinstance(epsilon_layer,nn.conv2D):
+                new_sparse,sum = sparse_conv2d(new_sparse,self.mask_epsilon)
+                sum = sum.unsqueeze(0)
+            else : 
+                evaluator_new_noise = SparseEvaluation(new_sparse,
+                                                    chunk_size = dim_chunk_val,
+                                                    function=epsilon_layer, 
+                                                    mask_coef = self.mask_epsilon,
+                                                    eval_start_index=self.len_zono,
+                                                    device =self.device)
+                new_sparse, sum = evaluator_new_noise.evaluate_all_chunks(num_workers=1)
+                sum = sum
             self.sum_abs +=sum
             zono_size = list(self.zonotope_espilon_sparse_tensor.size())
             new_sparse_size = list(new_sparse.size())
@@ -433,7 +446,7 @@ model = pytorch_model
 
 model = SimpleCNN()
 
-input_dim = (3,224,224
+input_dim = (3,112,112
              )
 
 
