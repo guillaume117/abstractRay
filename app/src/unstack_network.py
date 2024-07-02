@@ -15,6 +15,7 @@ class UnStackNetwork:
         for name, module in self.model.named_children():
     
             x = self.process_layer(name, module, x)
+            print(module)
         
         # Ajouter une couche Linear identité à la fin du réseau
         x = self.add_identity_layer(x)
@@ -35,7 +36,7 @@ class UnStackNetwork:
         elif isinstance(layer, nn.Flatten):
             x = self.process_flatten(name, layer, x)
         else:
-            if layer is not None and not 'Module()' and not 'OnnxDropoutDynamic()':
+            if layer is not None and not 'Module()' and not 'OnnxDropoutDynamic()' and not 'OnnxShape()' and not 'OnnxGather' and not 'OnnxConstant' and not 'OnnxConcat':
            
                 x = layer(x)   # Handle input layer without layer
 

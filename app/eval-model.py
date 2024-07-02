@@ -3,18 +3,19 @@ import torch.nn as nn
 import torchvision.models as models
 import copy
 import ray
-
+from PIL import Image
 import sys
+from torchvision import transforms
 sys.path.append('app/src')
 sys.path.append('./src')
 
 
 
-from sparse_evaluation_3 import SparseEvaluation  
+from sparse_evaluation_4 import SparseEvaluation  
 from zono_sparse_gen import ZonoSparseGeneration
 from unstack_network import UnStackNetwork
 from abstract_relu import AbstractReLU
-from sparse_addition import SparseAddition
+from sparse_addition_2 import SparseAddition
 import random
 import numpy as np
 
@@ -42,8 +43,8 @@ class ModelEvaluator:
     def dim_chunk(self, available_RAM=None):
         if available_RAM is None:
             available_RAM = self.available_RAM
-        dense_memory_footprint = torch.prod(torch.tensor(self.input.shape)) *4/1e9      print("3"*100)
-        print(x.shape)
+        dense_memory_footprint = torch.prod(torch.tensor(self.input.shape)) *4/1e9      
+
         return int(max(1,available_RAM//(3*dense_memory_footprint)))
     
 
@@ -240,7 +241,7 @@ class ModelEvaluator:
                                                    mask_coef = mask_epsilon,
                                                    eval_start_index=len_zono,
                                                    device =device)
-            new_sparse, sum = evaluator_new_noise.evaluate_all_chunks(num_workers=1)
+            new_sparse, sum = evaluator_new_noise.evaluate_all_chunks(num_workers=num_workers)
             sum_abs +=sum
             zono_size = list(zono.size())
             new_sparse_size = list(new_sparse.size())
@@ -298,7 +299,7 @@ class ModelEvaluator:
                                                    mask_coef = self.mask_epsilon,
                                                    eval_start_index=self.len_zono,
                                                    device =self.device)
-            new_sparse, sum = evaluator_new_noise.evaluate_all_chunks(num_workers=1)
+            new_sparse, sum = evaluator_new_noise.evaluate_all_chunks(num_workers=self.num_workers)
             self.sum_abs +=sum
             zono_size = list(self.zonotope_espilon_sparse_tensor.size())
             new_sparse_size = list(new_sparse.size())
@@ -379,9 +380,6 @@ class ModelEvaluator:
         }
         return results
 
-
-
-
 class SimpleCNN(nn.Module):
     def __init__(self):
         super(SimpleCNN, self).__init__()
@@ -391,14 +389,18 @@ class SimpleCNN(nn.Module):
         
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.relu2 = nn.ReLU()
+        
         self.maxpool2D = nn.MaxPool2d(kernel_size=2,stride=2)
-        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(5,5))
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(8,8))
         
  
-        self.fc1 = nn.Linear(in_features=800, out_features=128)  
+        self.fc1 = nn.Linear(in_features=2048, out_features=512)  
         self.relu3 = nn.ReLU()
-        self.fc2 = nn.Linear(in_features=128, out_features=10)  
+        self.fc2 = nn.Linear(in_features=512, out_features=10)  
         self.relu4 = nn.ReLU()
+
+        #self.fc3 = nn.Linear(in_features=128, out_features=10)  
+        #self.relu5 = nn.ReLU()
 
     def forward(self, x):
 
@@ -413,30 +415,43 @@ class SimpleCNN(nn.Module):
         
        
         x = self.avgpool(x)
-        print("3"*100)
-        print(x.shape)
+  
         x = x.view(x.size(0), -1)
         x = self.relu3(self.fc1(x))
       
         x = self.relu4(self.fc2(x))
+      #  x = self.relu5(self.fc3(x))
         return x
-
+    
+model = SimpleCNN()
+input_dim =(3,112,112)
 """
 import onnx
 from onnx2torch import convert
-path = './vgg16-12.onnx'
+path = './vgg16-7.onnx'
 onnx_model = onnx.load(path)
 pytorch_model = convert(onnx_model)
 model = pytorch_model
 
 """
 
-model = SimpleCNN()
+
 
 input_dim = (3,224,224
              )
 
+image_path = "output_image.jpeg"
+image = Image.open(image_path)
 
+
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+])
+
+test_input = transform(image).unsqueeze(0) 
+
+print(f"True:{model(test_input)}")
 
 
 unstacked = UnStackNetwork(model, input_dim)
@@ -444,12 +459,10 @@ print("*"*100)
 print("unstacked output ",*unstacked.output)
 print("*"*100)
 
-test_input = torch.randn(1, *input_dim)
-print(f"True:{model(test_input)}")
-_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.01).total_zono()
+_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.0001*255).total_zono()
 print(zonotope_espilon_sparse_tensor)
 ray.init()
-model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=5, available_RAM=1,device=torch.device('cpu'))
+model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=0, available_RAM=10,device=torch.device('cpu'))
 
 result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)
 
