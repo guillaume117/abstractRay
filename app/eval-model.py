@@ -4,20 +4,25 @@ import torchvision.models as models
 import copy
 import ray
 
+
 import sys
 sys.path.append('app/src')
 sys.path.append('./src')
 
-
+ray.init()
 
 from sparse_evaluation_3 import SparseEvaluation  
 from zono_sparse_gen import ZonoSparseGeneration
 from unstack_network import UnStackNetwork
 from abstract_relu import AbstractReLU
 from sparse_addition import SparseAddition
-from sparse_conv2D import SparseConv2D,conv2d_to_sparseconv2d
+from sparse_conv2D import SparseConv2D, conv2d_to_sparseconv2d
+
+# Utilisation de SparseConv2D ici
+
 import random
 import numpy as np
+
 
 def set_seed(seed):
     random.seed(seed)
@@ -281,9 +286,9 @@ class ModelEvaluator:
             print("8"*100)
             print(epsilon_layer)
         if isinstance(epsilon_layer,nn.Conv2d):
-            sparse_conv2d = conv2d_to_sparseconv2d(epsilon_layer)
-            sparse_conv2d.bias = None
-            self.zonotope_espilon_sparse_tensor,self.sum_abs = sparse_conv2d(self.zonotope_espilon_sparse_tensor,mask=self.mask_epsilon)
+            sparseconv2d = conv2d_to_sparseconv2d(epsilon_layer)
+            sparseconv2d.bias = None
+            self.zonotope_espilon_sparse_tensor,self.sum_abs = sparseconv2d(self.zonotope_espilon_sparse_tensor,mask=self.mask_epsilon,num_workers=self.num_workers)
             self.sum_abs = self.sum_abs.unsqueeze(0)
         else :
             evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
@@ -301,7 +306,7 @@ class ModelEvaluator:
         
         if new_sparse is not None:
             if isinstance(epsilon_layer,nn.conv2D):
-                new_sparse,sum = sparse_conv2d(new_sparse,self.mask_epsilon)
+                new_sparse,sum = sparseconv2d(new_sparse,self.mask_epsilon)
                 sum = sum.unsqueeze(0)
             else : 
                 evaluator_new_noise = SparseEvaluation(new_sparse,
@@ -446,7 +451,7 @@ model = pytorch_model
 
 model = SimpleCNN()
 
-input_dim = (3,112,112
+input_dim = (3,52,52
              )
 
 
@@ -459,9 +464,10 @@ print("*"*100)
 
 test_input = torch.randn(1, *input_dim)
 print(f"True:{model(test_input)}")
-_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.01).total_zono()
+_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.001).total_zono()
 print(zonotope_espilon_sparse_tensor)
-ray.init()
+
+
 model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=5, available_RAM=1,device=torch.device('cpu'))
 
 result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)
