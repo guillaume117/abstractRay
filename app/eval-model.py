@@ -440,7 +440,7 @@ import torchvision.models as models
 model = models.vgg19(pretrained=True)
 
 
-input_dim = (3,64,64
+input_dim = (3,224,224
              )
 
 image_path = "app/output_image.jpeg"
@@ -448,7 +448,7 @@ image = Image.open(image_path)
 
 
 transform = transforms.Compose([
-    transforms.Resize((64, 64)),
+    transforms.Resize((224, 224)),
     transforms.ToTensor(),
 ])
 
