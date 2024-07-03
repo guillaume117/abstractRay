@@ -261,4 +261,4 @@ class SparseAddition:
 
         global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=torch.Size(self.common_size)).coalesce().to('cpu')
 
-        return global_sparse_tensor, function_sum
+        return global_sparse_tensor.to('cpu'), function_sum.to('cpu')
