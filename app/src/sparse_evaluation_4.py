@@ -89,6 +89,7 @@ class SparseEvaluation:
             self.function = lambda x: x
         else:
             self.function = function
+        func_copy=self.function.to('cpu')
 
         x0 = torch.zeros(1, *self.dense_shape[1:])
         if mask_coef is None:
@@ -97,7 +98,7 @@ class SparseEvaluation:
             self.mask_coef = mask_coef.to(self.device)
 
         self.num_chunks = (self.dense_shape[0] + self.chunk_size - 1) // self.chunk_size
-        self.output_size = list(self.function(x0).shape)
+        self.output_size = list(func_copy(x0).shape)
         self.output_size[0] = self.dense_shape[0]
         print("output_size", self.output_size)
 
