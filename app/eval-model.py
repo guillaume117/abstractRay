@@ -474,7 +474,7 @@ def resize_sparse_coo_tensor(sparse_tensor, new_size):
     new_values = values[mask]
 
     new_sparse_tensor = torch.sparse_coo_tensor(new_indices, new_values, new_size)
-    return new_sparse_tensor
+    return new_sparse_tensor.coalesce()
 
 zonotope_espilon_sparse_tensor = resize_sparse_coo_tensor(zonotope_espilon_sparse_tensor, (3*82*82,3,224,224))
 print(zonotope_espilon_sparse_tensor)
