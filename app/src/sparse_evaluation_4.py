@@ -138,7 +138,7 @@ class SparseEvaluation:
 
         for add_indices, func_values, func_sum in results:
             add_indices = add_indices + torch.tensor(
-                [[self.eval_start_index]] + [[0]] * (add_indices.size(0) - 1), dtype=torch.int32, device=self.device
+                [[self.eval_start_index]] + [[0]] * (add_indices.size(0) - 1), dtype=torch.int32, device=torch.device('cpu')
             )
             global_indices.append(add_indices)
             global_values.append(func_values)
