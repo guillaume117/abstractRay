@@ -448,7 +448,7 @@ image = Image.open(image_path)
 
 
 transform = transforms.Compose([
-    transforms.Resize((112, 112)),
+    transforms.Resize((64, 64)),
     transforms.ToTensor(),
 ])
 
