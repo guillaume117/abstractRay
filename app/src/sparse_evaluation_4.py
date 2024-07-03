@@ -57,8 +57,8 @@ class SparseWorker:
                 else:
                     function_sum += func_sum
 
-                func_output_sparse = func_output.to_sparse().coalesce()
-                add_indices = func_output_sparse.indices().to(torch.int32).to('cpu') + torch.tensor(
+                func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
+                add_indices = func_output_sparse.indices().to(torch.int32) + torch.tensor(
                     [[chunk_start + self.worker_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=torch.int32, device=torch.device('cpu')
                 )
 
