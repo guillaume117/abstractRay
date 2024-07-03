@@ -72,6 +72,8 @@ class ModelEvaluator:
     
     @staticmethod
     def static_process_trash_layer(input,function):
+        function=function.to('cpu')
+        input = input.to('cpu')
         return function(input)
 
 
@@ -440,7 +442,7 @@ model = pytorch_model
 input_dim = (3,112,112
              )
 
-image_path = "output_image.jpeg"
+image_path = "app/output_image.jpeg"
 image = Image.open(image_path)
 
 
@@ -462,7 +464,7 @@ print("*"*100)
 _,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.001).total_zono()
 print(zonotope_espilon_sparse_tensor)
 ray.init()
-model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=0, available_RAM=10,device=torch.device('cuda'))
+model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=0, available_RAM=10,device=torch.device('cpu'))
 
 result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)
 
