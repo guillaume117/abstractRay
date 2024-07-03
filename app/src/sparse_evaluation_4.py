@@ -156,6 +156,7 @@ class SparseEvaluation:
     def evaluate_chunks_directly(self):
         indices = self.x.indices().t()
         values = self.x.values()
+        self.function = self.function.to(self.device)
 
         global_storage = {
             'indices': [],
