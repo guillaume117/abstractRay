@@ -424,10 +424,10 @@ class SimpleCNN(nn.Module):
         x = self.relu4(self.fc2(x))
       #  x = self.relu5(self.fc3(x))
         return x
-    
+"""    
 model = SimpleCNN()
 input_dim =(3,112,112)
-"""
+
 import onnx
 from onnx2torch import convert
 path = './vgg16-7.onnx'
@@ -436,7 +436,8 @@ pytorch_model = convert(onnx_model)
 model = pytorch_model
 
 """
-
+import torchvision.models as models
+model = models.vgg19(pretrained=True)
 
 
 input_dim = (3,112,112
