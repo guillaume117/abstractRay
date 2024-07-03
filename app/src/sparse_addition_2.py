@@ -5,7 +5,7 @@ from torch.sparse import FloatTensor
 from typing import Callable, Tuple
 from tqdm import tqdm
 
-@ray.remote
+@ray.remote(num_gpus=1)
 class SparseWorker:
     def __init__(self, x_chunk, y_chunk, chunk_size, operation, dense_shape, worker_start_index, device):
         self.x_chunk = x_chunk.coalesce().to(device)

@@ -440,7 +440,7 @@ import torchvision.models as models
 model = models.vgg19(pretrained=True)
 
 
-input_dim = (3,112,112
+input_dim = (3,64,64
              )
 
 image_path = "app/output_image.jpeg"
