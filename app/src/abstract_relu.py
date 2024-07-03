@@ -87,15 +87,4 @@ class AbstractReLU(nn.Module):
         return x_center.to('cpu'),trash_layer.to('cpu'), mask_epsilon.to('cpu')
     
 
-def main():
-    x,t,m,n = AbstractReLU().abstract_relu(torch.randn(224,512,512),0.01*torch.randn(224,512,512),torch.zeros(224,512,512),start_index=150,add_symbol=True)
-    print(x)
-    print(t)
-    print(m)
-    print(n)
-
-if __name__=="__main__":
-    main()
-
-    
     
