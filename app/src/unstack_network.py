@@ -12,10 +12,15 @@ class UnStackNetwork:
 
     def unstack_network(self):
         x = torch.randn(1, *self.input_dim)
+
         for name, module in self.model.named_children():
-    
-            x = self.process_layer(name, module, x)
-            print(module)
+            if isinstance(module, nn.Sequential):
+                for sub_name, sub_module in module.named_children():
+                    x = self.process_layer(f"{name}.{sub_name}", sub_module, x)
+            else:
+                x = self.process_layer(name, module, x)
+        return x
+
         
         # Ajouter une couche Linear identité à la fin du réseau
         x = self.add_identity_layer(x)
