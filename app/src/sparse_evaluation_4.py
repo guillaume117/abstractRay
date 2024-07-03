@@ -6,7 +6,7 @@ import torch.nn as nn
 import ray
 from tqdm import tqdm
 
-@ray.remote
+@ray.remote(num_gpus=1)
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, worker_start_index, device):
         self.x_chunk = x_chunk.coalesce().to(device)
@@ -74,7 +74,7 @@ class SparseWorker:
         global_indices = torch.cat(global_storage['indices'], dim=1)
         global_values = torch.cat(global_storage['values'], dim=0)
 
-        return global_indices, global_values, function_sum
+        return global_indices, global_values, function_sum.to('cpu')
 
 class SparseEvaluation:
     def __init__(self, x: FloatTensor, chunk_size: int, mask_coef: FloatTensor = None, function: Callable = None, eval_start_index=0, device=torch.device('cpu')):
