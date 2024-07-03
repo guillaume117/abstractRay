@@ -83,6 +83,7 @@ class SparseEvaluation:
         self.dense_shape = list(x.size())
         self.device = device
         self.eval_start_index = eval_start_index
+        
 
         if function is None:
             self.function = lambda x: x
@@ -91,9 +92,9 @@ class SparseEvaluation:
 
         x0 = torch.zeros(1, *self.dense_shape[1:])
         if mask_coef is None:
-            self.mask_coef = torch.ones_like(x0)
+            self.mask_coef = torch.ones_like(x0).to(self.device)
         else:
-            self.mask_coef = mask_coef
+            self.mask_coef = mask_coef.to(self.device)
 
         self.num_chunks = (self.dense_shape[0] + self.chunk_size - 1) // self.chunk_size
         self.output_size = list(self.function(x0).shape)

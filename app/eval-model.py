@@ -33,7 +33,7 @@ def set_seed(seed):
 set_seed(42)
 class ModelEvaluator:
 
-    def __init__(self, unstacked_model, input,num_workers = 1,available_RAM = 8, device =torch.device('cpu')):
+    def __init__(self, unstacked_model, input,num_workers = 0,available_RAM = 8, device =torch.device('cpu')):
         self.output = unstacked_model
         self.input = input
         self.num_workers = num_workers
@@ -437,7 +437,7 @@ model = pytorch_model
 
 
 
-input_dim = (3,224,224
+input_dim = (3,112,112
              )
 
 image_path = "output_image.jpeg"
@@ -445,7 +445,7 @@ image = Image.open(image_path)
 
 
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
+    transforms.Resize((112, 112)),
     transforms.ToTensor(),
 ])
 
@@ -459,7 +459,7 @@ print("*"*100)
 print("unstacked output ",*unstacked.output)
 print("*"*100)
 
-_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.0001*255).total_zono()
+_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.001).total_zono()
 print(zonotope_espilon_sparse_tensor)
 ray.init()
 model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=0, available_RAM=10,device=torch.device('cpu'))

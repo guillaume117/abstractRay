@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.sparse import FloatTensor
 from typing import Callable, Tuple
+from tqdm import tqdm
 
 @ray.remote
 class SparseWorker:
@@ -201,7 +202,7 @@ class SparseAddition:
 
         function_sum = None
 
-        for i in range(num_chunks):
+        for i in tqdm(range(num_chunks)):
             with torch.no_grad():
                 chunk_start = i * self.chunk_size
                 chunk_end = min((i + 1) * self.chunk_size, self.x.shape[0])
