@@ -463,6 +463,20 @@ print("unstacked output ",*unstacked.output)
 print("*"*100)
 
 _,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.001).total_zono()
+def resize_sparse_coo_tensor(sparse_tensor, new_size):
+  
+    indices = sparse_tensor.coalesce().indices()
+    values = sparse_tensor.coalesce().values()
+    
+  
+    mask = torch.all(indices < torch.tensor(new_size).unsqueeze(1), dim=0)
+    new_indices = indices[:, mask]
+    new_values = values[mask]
+
+    new_sparse_tensor = torch.sparse_coo_tensor(new_indices, new_values, new_size)
+    return new_sparse_tensor
+
+zonotope_espilon_sparse_tensor = resize_sparse_coo_tensor(zonotope_espilon_sparse_tensor, (3*82*82,3,224,224))
 print(zonotope_espilon_sparse_tensor)
 ray.init()
 model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=1, available_RAM=10,device=torch.device('cuda'))
