@@ -472,12 +472,12 @@ with torch.no_grad():
     model = SimpleCNN()
     input_dim =(3,112,112)
     """
-    import onnx
-    from onnx2torch import convert
-    path = 'app/vgg16-12.onnx'
-    onnx_model = onnx.load(path)
-    pytorch_model = convert(onnx_model)
-    model = pytorch_model
+    #import onnx
+    #from onnx2torch import convert
+    #path = 'app/vgg16-12.onnx'
+    #onnx_model = onnx.load(path)
+    #pytorch_model = convert(onnx_model)
+    #model = pytorch_model
     #model =  SimpleCNN()
     #model.eval()
     
