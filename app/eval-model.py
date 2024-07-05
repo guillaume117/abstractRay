@@ -286,9 +286,9 @@ class ModelEvaluator:
             print("8"*100)
             print(epsilon_layer)
         if isinstance(epsilon_layer,nn.Conv2d):
-            sparseconv2d = conv2d_to_sparseconv2d(epsilon_layer)
+            sparseconv2d = conv2d_to_sparseconv2d(epsilon_layer,num_workers =self.num_workers)
             sparseconv2d.bias = None
-            self.zonotope_espilon_sparse_tensor,self.sum_abs = sparseconv2d(self.zonotope_espilon_sparse_tensor,mask=self.mask_epsilon,num_workers=self.num_workers)
+            self.zonotope_espilon_sparse_tensor,self.sum_abs = sparseconv2d(self.zonotope_espilon_sparse_tensor,mask=self.mask_epsilon)
             self.sum_abs = self.sum_abs.unsqueeze(0)
         else :
             evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 

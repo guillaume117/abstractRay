@@ -116,7 +116,7 @@ class SparseWorker:
 
         return output
 
-def conv2d_to_sparseconv2d(conv2d):
+def conv2d_to_sparseconv2d(conv2d,num_workers):
     """
     Transforms a torch.nn.Conv2d instance to a SparseConv2D instance
     
@@ -139,4 +139,4 @@ def conv2d_to_sparseconv2d(conv2d):
     else:
         bias = None
 
-    return SparseConv2D(in_channels, out_channels, kernel_size, stride, padding, groups=groups, dilation=dilation, bias=(bias is not None), weights=weights, bias_val=bias)
+    return SparseConv2D(in_channels, out_channels, kernel_size, stride, padding, groups=groups, dilation=dilation, bias=(bias is not None), weights=weights, bias_val=bias,num_workers=num_workers)
