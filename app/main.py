@@ -24,6 +24,7 @@ def parse_args():
     parser.add_argument('--back_end', choices=['cuda', 'cpu'], required=True, help='Backend to use: cuda or cpu')
     parser.add_argument('--num_symbol', required=True, help='Number of symbols: \'full\' or a positive integer')
     parser.add_argument('--noise', type=float, required=True, help='Noise level')
+    parser.add_argument('--RAM',type = float, required = True, help ='Available RAM per worker')
 
     args = parser.parse_args()
     
@@ -46,6 +47,7 @@ def parse_args():
             print("PyTorch model successfully loaded.")
         except Exception as e:
             print(f"Error loading PyTorch model: {e}")
+            
     else:
         print("Unsupported network model format. Please provide a .onnx or .pt/.pth file.")
     
@@ -81,7 +83,21 @@ if __name__ == '__main__':
                 with torch.no_grad():
                     output = model(image_tensor)
                 print("Model inference successful")
-             
+                _,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(image_tensor,args.noise).total_zono()
+                if args.num_symbol !='full':
+                    zonotope_espilon_sparse_tensor = resize_sparse_coo_tensor(zonotope_espilon_sparse_tensor, (int(args.num_symbol),*image_tensor.shape[1:]))
+                print(f"Abstract domain input dim = {zonotope_espilon_sparse_tensor.size()}, noise = {args.noise}")
+                unstacked = UnStackNetwork(model, image_tensor.shape[1:])
+                print("*"*100)
+                print("unstacked output ",*unstacked.output)
+                print("*"*100)
+                if args.back_end == 'cuda':
+                    sparse_worker_decorator = ray.remote(num_gpus=1)
+                else:
+                    sparse_worker_decorator = ray.remote(num_cpus=1)
+                model_evaluator = ModelEvaluator(unstacked.output, image_tensor,num_workers=args.num_worker, available_RAM=args.RAM,device=torch.device(args.back_end))
+
+                result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)                
             except Exception as e:
                 print(f"Error during model inference: {e}")
         else:
@@ -89,21 +105,5 @@ if __name__ == '__main__':
     else:
         print("Failed to load the model.")
 
-_,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(image_tensor,args.noise).total_zono()
-print((args.num_symbol,*image_tensor.shape))
-if args.num_symbol !='full':
-    zonotope_espilon_sparse_tensor = resize_sparse_coo_tensor(zonotope_espilon_sparse_tensor, (int(args.num_symbol),*image_tensor.shape[1:]))
-print(f"Abstract domain input dim = {zonotope_espilon_sparse_tensor.size()}, noise = {args.noise}")
 
-unstacked = UnStackNetwork(model, image_tensor.shape[1:])
 
-print("*"*100)
-print("unstacked output ",*unstacked.output)
-print("*"*100)
-if args.back_end == 'cuda':
-    sparse_worker_decorator = ray.remote(num_gpus=1)
-else:
-    sparse_worker_decorator = ray.remote(num_cpus=1)
-model_evaluator = ModelEvaluator(unstacked.output, image_tensor,num_workers=args.num_worker, available_RAM=10,device=torch.device(args.back_end))
-
-result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)

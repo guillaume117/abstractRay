@@ -16,6 +16,7 @@ from zono_sparse_gen import ZonoSparseGeneration
 from unstack_network2 import UnStackNetwork
 from abstract_relu import AbstractReLU
 from sparse_addition_2 import SparseAddition
+from max_pool_min_max import AbstractMaxPool
 import random
 import numpy as np
 
@@ -399,8 +400,9 @@ class ModelEvaluator:
 
                 if activation_name:
                     if activation_name == 'MaxPool2d':
-                        self.zonotope_espilon_sparse_tensor,self.sum_abs,self.input,self.trash = self.process_max_pool2D(self.details['activation_function'])
-                        self.mask_epsilon = torch.ones_like(self.input)
+                        self.input, self.trash, self.mask_epsilon= AbstractMaxPool.abstract_max_pool_min_max(
+                                self.input, self.sum_abs, self.trash, start_index=self.len_zono, add_symbol=True
+                            )
                     
                     else : 
                         class_name = f"Abstract{activation_name}"
