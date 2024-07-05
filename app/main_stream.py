@@ -1,5 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import torch
 import onnx
 from onnx2torch import convert
@@ -14,17 +16,25 @@ from zono_sparse_gen import ZonoSparseGeneration
 from model_evaluator import ModelEvaluator
 from unstack_network2 import UnStackNetwork
 import io
+import uvicorn
 
 app = FastAPI()
 
-def load_model(network_path):
-    if network_path.endswith('.onnx'):
-        onnx_model = onnx.load(network_path)
+# Middleware to increase max file size
+app.add_middleware(
+    GZipMiddleware,
+    minimum_size=1000
+)
+
+def load_model(network_file):
+    filename = network_file.filename
+    if filename.endswith('.onnx'):
+        onnx_model = onnx.load_model(io.BytesIO(network_file.file.read()))
         pytorch_model = convert(onnx_model)
         pytorch_model.eval()
         return pytorch_model
-    elif network_path.endswith('.pt') or network_path.endswith('.pth'):
-        pytorch_model = torch.load(network_path)
+    elif filename.endswith('.pt') or filename.endswith('.pth'):
+        pytorch_model = torch.load(io.BytesIO(network_file.file.read()), map_location=torch.device('cpu'))
         pytorch_model.eval()
         return pytorch_model
     else:
@@ -44,14 +54,14 @@ def validate_and_transform_image(image_data):
 async def evaluate_model(
     network: UploadFile = File(...),
     input_image: UploadFile = File(...),
-    num_worker: int = 1,
+    num_worker: int = 0,
     back_end: str = 'cpu',
     num_symbol: str = 'full',
     noise: float = 0.0,
     RAM: float = 1.0
 ):
     try:
-        model = load_model(network.file)
+        model = load_model(network)
         image_data = await input_image.read()
         image_tensor = validate_and_transform_image(image_data)
 
@@ -96,5 +106,4 @@ async def evaluate_model(
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

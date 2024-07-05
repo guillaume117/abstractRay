@@ -7,10 +7,10 @@ st.title("Model Evaluator")
 uploaded_network = st.file_uploader("Upload your network model (.onnx or .pt/.pth)", type=["onnx", "pt", "pth"])
 uploaded_image = st.file_uploader("Upload your input image", type=["jpg", "jpeg", "png"])
 
-num_worker = st.number_input("Number of workers", min_value=1, value=1)
+num_worker = st.number_input("Number of workers", min_value=0, value=1)
 back_end = st.selectbox("Backend", ["cpu", "cuda"])
-num_symbol = st.text_input("Number of symbols", value="full")
-noise = st.number_input("Noise level", value=0.0)
+num_symbol = st.text_input("Number of symbols", value="Full")
+noise = st.number_input("Noise level", value=0.00001)
 RAM = st.number_input("Available RAM per worker", value=1.0)
 
 if st.button("Evaluate Model"):
