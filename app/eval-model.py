@@ -13,7 +13,7 @@ sys.path.append('./src')
 
 from sparse_evaluation_4 import SparseEvaluation  
 from zono_sparse_gen import ZonoSparseGeneration
-from unstack_network import UnStackNetwork
+from unstack_network2 import UnStackNetwork
 from abstract_relu import AbstractReLU
 from sparse_addition_2 import SparseAddition
 import random
@@ -482,8 +482,8 @@ with torch.no_grad():
     #model.eval()
     
     import torchvision.models as models
-    model = models.vgg19(pretrained=True)
-    
+    model = models.vgg16(pretrained=True)
+    model.eval()
 
     input_dim = (3,224,224
                 )
