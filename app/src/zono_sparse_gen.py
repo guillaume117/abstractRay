@@ -12,7 +12,7 @@ sys.path.append('./src')
 
 def list_of_shape(tensor: torch.Tensor) -> List[int]:
     """Returns the shape of a tensor as a list."""
-    tensor = torch.tensor(tensor)
+    tensor.clone().detach()
     return list(tensor.shape)
 
 class ZonoSparseGeneration:

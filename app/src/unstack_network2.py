@@ -32,27 +32,38 @@ class UnStackNetwork:
                 x = nn.Flatten()(x)
                 original_output = nn.Flatten()(original_output)
                 x = self.process_linear_layer(name, nn.Sequential(nn.Flatten(), layer), x)
+                self.compare_outputs(layer(original_output), x, name)
             elif isinstance(layer, nn.Conv2d):
                 x = self.process_conv_layer(name, layer, x)
             elif isinstance(layer, nn.AdaptiveAvgPool2d):
                 x = self.process_avgpool_layer(name, layer, x)
+                self.compare_outputs(layer(original_output), x, name)
                 print(x.shape)
             elif isinstance(layer, (nn.ReLU, nn.Sigmoid, nn.Tanh, nn.MaxPool2d)):
                 x = self.process_activation_layer(name, layer, x)
+                self.compare_outputs(layer(original_output), x, name)
             elif isinstance(layer, nn.Flatten):
                 x = self.process_flatten(name, layer, x)
+                self.compare_outputs(layer(original_output), x, name)
             elif isinstance(layer, nn.Sequential):
                 x = self.process_sequential(name, layer, x)
+                self.compare_outputs(layer(original_output), x, name)
             else:
                 if hasattr(layer, 'forward'):
-                    x = layer(x)
+                 
+             
+                    if layer is not None and not 'Module()' and not 'OnnxDropoutDynamic()':
+                        x = layer(x)
+                        print(f'layer {name} passed')
+                        self.compare_outputs(layer(original_output), x, name)
+                    else : pass 
                 else:
                     print(f"Layer {name} not processed")
-
+                    self.compare_outputs(original_output, x, name)
             if isinstance(x, tuple):
                 x = x[0]
 
-            self.compare_outputs(layer(original_output), x, name)
+            
 
             return x
 
@@ -169,9 +180,10 @@ class UnStackNetwork:
             raise ValueError(f"Difference between original and new output is too high after layer {layer_name}: {difference}")
         print(f"Output comparison after layer {layer_name} passed")
 
-# Exemple d'utilisation
+"""
 model = models.resnet18(pretrained=False)
 model.eval()
-input_dim = (3, 224, 224)  # Utiliser la taille d'entrée correcte pour ResNet
+input_dim = (3, 224, 224) 
 unstacked_network = UnStackNetwork(model, input_dim)
 print(unstacked_network.output)
+"""

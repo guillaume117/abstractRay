@@ -1,67 +1,22 @@
 import torch
 import torch.nn as nn
-import torchvision.models as models
-import copy
-import ray
-from PIL import Image
+
+
 import sys
-from torchvision import transforms
+
 sys.path.append('app/src')
 sys.path.append('./src')
-
+from util import sparse_tensor_stats
 
 
 from sparse_evaluation_4 import SparseEvaluation  
 from zono_sparse_gen import ZonoSparseGeneration
-from unstack_network2 import UnStackNetwork
+
 from abstract_relu import AbstractReLU
 from sparse_addition_2 import SparseAddition
-import random
-import numpy as np
-
-def set_seed(seed):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-    # Ensure that all operations are deterministic on GPU (if applicable)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-import torch
-
-def sparse_tensor_stats(sparse_tensor):
-
-    if sparse_tensor.layout != torch.sparse_coo:
-        raise ValueError("Le tenseur doit être au format COO")
-
-
-    total_elements = torch.prod(torch.tensor(sparse_tensor.size()))
-    
-
-    non_zero_elements = sparse_tensor._nnz()
-    
-
-    non_zero_percentage = (non_zero_elements / total_elements) * 100
-    
-
-    dense_memory = total_elements * sparse_tensor.dtype.itemsize
-    
-
-    values_memory = sparse_tensor.values().numel() * sparse_tensor.values().element_size()
-    indices_memory = sparse_tensor.indices().numel() * sparse_tensor.indices().element_size()
-    sparse_memory = values_memory + indices_memory
-
-    memory_gain_percentage = ((dense_memory - sparse_memory) / dense_memory) * 100
-    
-    return non_zero_percentage, memory_gain_percentage
 
 
 
-
-set_seed(42)
 class ModelEvaluator:
 
     def __init__(self, unstacked_model, input,num_workers = 0,available_RAM = 8, device =torch.device('cpu')):
@@ -424,115 +379,3 @@ class ModelEvaluator:
                 'relevance':self.zonotope_espilon_sparse_tensor
             }
             return results
-
-class SimpleCNN(nn.Module):
-    def __init__(self):
-        super(SimpleCNN, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
-        self.relu1 = nn.ReLU()
-        
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
-        self.relu2 = nn.ReLU()
-        
-        self.maxpool2D = nn.MaxPool2d(kernel_size=2,stride=2)
-        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(8,8))
-        
- 
-        self.fc1 = nn.Linear(in_features=2048, out_features=512)  
-        self.relu3 = nn.ReLU()
-        self.fc2 = nn.Linear(in_features=512, out_features=10)  
-        self.relu4 = nn.ReLU()
-
-        #self.fc3 = nn.Linear(in_features=128, out_features=10)  
-        #self.relu5 = nn.ReLU()
-
-    def forward(self, x):
-
-        x = self.relu1(self.conv1(x))
-        
-
-        x = self.relu2(self.conv2(x))
-
-       
-
-        x=self.maxpool2D(x)
-        
-       
-        x = self.avgpool(x)
-  
-        x = x.view(x.size(0), -1)
-        x = self.relu3(self.fc1(x))
-      
-        x = self.relu4(self.fc2(x))
-      #  x = self.relu5(self.fc3(x))
-        return x
-with torch.no_grad():
-    """    
-    model = SimpleCNN()
-    input_dim =(3,112,112)
-    """
-    import onnx
-    from onnx2torch import convert
-    path = 'app/vgg16-12.onnx'
-    onnx_model = onnx.load(path)
-    pytorch_model = convert(onnx_model)
-    model = pytorch_model
-    #model =  SimpleCNN()
-    #model.eval()
-    
-    #import torchvision.models as models
-    #model = models.vgg16(pretrained=True)
-    model.eval()
-
-    input_dim = (3,224,224
-                )
-
-    image_path = "app/output_image.jpeg"
-    image = Image.open(image_path)
-
-
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
-
-    test_input = transform(image).unsqueeze(0) 
-    print(f"min/max input = {torch.min(test_input)},{torch.max(test_input)}")
-
-
-
-
-    unstacked = UnStackNetwork(model, input_dim)
-    print("*"*100)
-    print("unstacked output ",*unstacked.output)
-    print("*"*100)
-
-    _,zonotope_espilon_sparse_tensor = ZonoSparseGeneration(test_input,0.00001).total_zono()
-    def resize_sparse_coo_tensor(sparse_tensor, new_size):
-    
-        indices = sparse_tensor.coalesce().indices()
-        values = sparse_tensor.coalesce().values()
-        
-    
-        mask = torch.all(indices < torch.tensor(new_size).unsqueeze(1), dim=0)
-        new_indices = indices[:, mask]
-        new_values = values[mask]
-
-        new_sparse_tensor = torch.sparse_coo_tensor(new_indices, new_values, new_size)
-        return new_sparse_tensor.coalesce()
-
-    zonotope_espilon_sparse_tensor = resize_sparse_coo_tensor(zonotope_espilon_sparse_tensor, (1,3,224,224))
-    print(zonotope_espilon_sparse_tensor)
-    ray.init()
-    model_evaluator = ModelEvaluator(unstacked.output, test_input,num_workers=0, available_RAM=10,device=torch.device('cpu'))
-
-    result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)
-    argmax = torch.topk(result['center'],10).indices
-    print(argmax)
-
-    print(f"True:{model(test_input).squeeze(0)[argmax]}")
-    print(f"Center: {result['center'].squeeze(0)[argmax]}")
-    print(f"Min: {result['min'].squeeze(0)[argmax]}")
-    print(f"Max: {result['max'].squeeze(0)[argmax]}")
-    print(f"diff center -true,{torch.max(model(test_input)-result['center'])}")

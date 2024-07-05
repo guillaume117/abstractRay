@@ -43,7 +43,7 @@ class SimpleCNN(nn.Module):
         return x
 
 model = SimpleCNN()
-input_dim = (3, 112, 112)
+input_dim = (3, 224, 224)
 dummy_input = torch.randn(1, *input_dim)
 torch.onnx.export(
     model,
@@ -70,7 +70,7 @@ image = Image.open(image_path)
 
 
 transform = transforms.Compose([
-    transforms.Resize((112, 112)),
+    transforms.Resize((224, 224)),
     transforms.ToTensor(),
 ])
 
@@ -115,7 +115,7 @@ def load_image(image_path, input_size):
 
 
     transform = transforms.Compose([
-        transforms.Resize((112, 112)),
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
     ])
     image = transform(image)
@@ -174,9 +174,9 @@ def estimate_min_max(model_path, image_path, input_size, alpha, num_samples=1000
 if __name__ == "__main__":
     model_path = "model.onnx"  
     image_path = "output_image.jpeg"   
-    input_size = (3,112, 112)                
-    alpha = 0.0001 *255                            
-    num_samples = 100000                    
+    input_size = (3,224, 224)                
+    alpha = 0.0001                          
+    num_samples = 100                  
 
     min_output, max_output = estimate_min_max(model_path, image_path, input_size, alpha, num_samples)
     print(f"Valeur minimale estimée: {min_output}")
