@@ -103,7 +103,7 @@ async def prepare_evaluation(
             _, zonotope_espilon_sparse_tensor = ZonoSparseGeneration(image_tensor, noise).total_zono()
             messages.append(f"Zonotope generated successfully, dimensions: {zonotope_espilon_sparse_tensor.shape}")
 
-            if num_symbol != 'full':
+            if num_symbol != 'Full':
                 try:
                     num_symbol = int(num_symbol)
                     zonotope_espilon_sparse_tensor = resize_sparse_coo_tensor(zonotope_espilon_sparse_tensor, (num_symbol, *image_tensor.shape[1:]))
