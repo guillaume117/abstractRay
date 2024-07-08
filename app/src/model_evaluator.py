@@ -6,7 +6,7 @@ import sys
 
 sys.path.append('app/src')
 sys.path.append('./src')
-from util import sparse_tensor_stats
+from util import sparse_tensor_stats, get_largest_tensor_size
 
 
 from sparse_evaluation_4 import SparseEvaluation  
@@ -143,7 +143,12 @@ class ModelEvaluator:
             
             len_E2 = E2.size(0)
             chunk_size = ModelEvaluator.static_dim_chunk(c2,self.available_RAM)
-            E1,S1 = SparseAddition(E1, E2, chunk_size=chunk_size, device=self.device).addition(num_workers=self.num_workers)
+            #E1,S1 = SparseAddition(E1, E2, chunk_size=chunk_size, device=self.device).addition(num_workers=self.num_workers)
+            dim1 = get_largest_tensor_size(E1,E2)
+            E1 = torch.sparse_coo_tensor(E1.indices(), E1.values(),size=dim1).coalesce()
+            E2 = torch.sparse_coo_tensor(E2.indices(), E2.values(),size=dim1).coalesce()
+            E1 = (E1 + E2).coalesce()
+            S1 = torch.sum(torch.abs(E1),dim=0).unsqueeze(0)
             c1 =c1+c2
             t1 =torch.abs(t1)+torch.abs(t2)
             E2, S2, c2, t2 = ModelEvaluator.static_process_linear_layer(self.input,
@@ -157,7 +162,12 @@ class ModelEvaluator:
                                                         self.available_RAM,
                                                         self.device)
             chunk_size = ModelEvaluator.static_dim_chunk(c2,self.available_RAM)
-            E2,S2 = SparseAddition(E2, E1, chunk_size=chunk_size, device=self.device).substraction(num_workers=self.num_workers)
+            #E2,S2 = SparseAddition(E2, E1, chunk_size=chunk_size, device=self.device).substraction(num_workers=self.num_workers)
+            dim1 = get_largest_tensor_size(E1,E2)
+            E2 = torch.sparse_coo_tensor(E2.indices(), E2.values(),size=dim1).coalesce()
+            E1 = torch.sparse_coo_tensor(E1.indices(), E1.values(),size=dim1).coalesce()
+            E2 = (E2 - E1).coalesce()
+            S2 = torch.sum(torch.abs(E2),dim=0).unsqueeze(0)
             c2 =c2-c1
             t2 =torch.abs(t1)+torch.abs(t2)
 
@@ -167,7 +177,12 @@ class ModelEvaluator:
                         )
             E3,S3,c3,t3 = ModelEvaluator.static_process_linear_layer(x3, E2 ,t3 ,ident, m3 , ident,ident,self.num_workers, self.available_RAM, self.device)
             chunk_size = ModelEvaluator.static_dim_chunk(c3,self.available_RAM)
-            E3,S3 = SparseAddition(E3, E1, chunk_size=chunk_size, device=self.device).addition(num_workers=self.num_workers)
+            #E3,S3 = SparseAddition(E3, E1, chunk_size=chunk_size, device=self.device).addition(num_workers=self.num_workers)
+            dim1 = get_largest_tensor_size(E1,E3)
+            E3 = torch.sparse_coo_tensor(E3.indices(), E3.values(),size=dim1).coalesce()
+            E1 = torch.sparse_coo_tensor(E1.indices(), E1.values(),size=dim1).coalesce()
+            E3 = (E3 + E1).coalesce()
+            S3 = torch.sum(torch.abs(E3),dim=0).unsqueeze(0)      
             c3 =c3+c1
             t3 =torch.abs(t3)+torch.abs(t1)
 

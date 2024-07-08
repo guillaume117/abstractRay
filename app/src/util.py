@@ -49,3 +49,17 @@ def resize_sparse_coo_tensor(sparse_tensor, new_size):
         return new_sparse_tensor.coalesce()
 
 
+def get_largest_tensor_size(tensor1, tensor2):
+    """
+    Renvoie la taille (shape) du tenseur sparse COO ayant la plus grande première dimension.
+
+    Args:
+    tensor1 (torch.sparse_coo_tensor): Premier tenseur sparse COO.
+    tensor2 (torch.sparse_coo_tensor): Deuxième tenseur sparse COO.
+
+    Returns:
+    torch.Size: La taille du tenseur avec la plus grande première dimension.
+    """
+    size1 = tensor1.shape[0]
+    size2 = tensor2.shape[0]
+    return tensor1.shape if size1 > size2 else tensor2.shape

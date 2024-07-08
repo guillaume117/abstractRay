@@ -49,7 +49,7 @@ def load_model(network_file, model_name):
     elif model_name == "vgg19":
         return models.vgg19(pretrained=True).eval()
     elif model_name == "resnet":
-        return models.resnet50(pretrained=True).eval()
+        return models.resnet18(pretrained=True).eval()
     else:
         raise ValueError("Unsupported model name.")
 
