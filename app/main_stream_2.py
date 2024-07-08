@@ -6,6 +6,7 @@ import onnx
 from onnx2torch import convert
 from PIL import Image
 import torchvision.transforms as transforms
+import torchvision.models as models
 import ray
 import os
 import sys
@@ -29,39 +30,52 @@ app.add_middleware(
 # Global variables to store intermediate results
 intermediate_results = {}
 
-def load_model(network_file):
-    filename = network_file.filename
-    if filename.endswith('.onnx'):
-        onnx_model = onnx.load_model(io.BytesIO(network_file.file.read()))
-        pytorch_model = convert(onnx_model)
-        pytorch_model.eval()
-        return pytorch_model
-    elif filename.endswith('.pt') or filename.endswith('.pth'):
-        pytorch_model = torch.load(io.BytesIO(network_file.file.read()), map_location=torch.device('cpu'))
-        pytorch_model.eval()
-        return pytorch_model
+def load_model(network_file, model_name):
+    if model_name == "custom":
+        filename = network_file.filename
+        if filename.endswith('.onnx'):
+            onnx_model = onnx.load_model(io.BytesIO(network_file.file.read()))
+            pytorch_model = convert(onnx_model)
+            pytorch_model.eval()
+            return pytorch_model
+        elif filename.endswith('.pt') or filename.endswith('.pth'):
+            pytorch_model = torch.load(io.BytesIO(network_file.file.read()), map_location=torch.device('cpu'))
+            pytorch_model.eval()
+            return pytorch_model
+        else:
+            raise ValueError("Unsupported network model format. Please provide a .onnx or .pt/.pth file.")
+    elif model_name == "vgg16":
+        return models.vgg16(pretrained=True).eval()
+    elif model_name == "vgg19":
+        return models.vgg19(pretrained=True).eval()
+    elif model_name == "resnet":
+        return models.resnet50(pretrained=True).eval()
     else:
-        raise ValueError("Unsupported network model format. Please provide a .onnx or .pt/.pth file.")
+        raise ValueError("Unsupported model name.")
 
-def validate_and_transform_image(image_data):
+def validate_and_transform_image(image_data, resize_input, resize_width, resize_height):
     image = Image.open(io.BytesIO(image_data))
-    image_size = image.size
+    if resize_input:
+        image = image.resize((resize_width, resize_height))
     transform = transforms.Compose([
-        transforms.Resize(image_size),
         transforms.ToTensor(),
     ])
     transformed_image = transform(image)
-    return transformed_image, image_size
+    return transformed_image, image.size
 
 @app.post("/prepare_evaluation/")
 async def prepare_evaluation(
-    network: UploadFile = File(...),
+    network: UploadFile = File(None),
     input_image: UploadFile = File(...),
+    model_name: str = Form(...),
     num_worker: int = Form(...),
     back_end: str = Form(...),
     num_symbol: str = Form(...),
     noise: float = Form(...),
-    RAM: float = Form(...)
+    RAM: float = Form(...),
+    resize_input: bool = Form(...),
+    resize_width: int = Form(None),
+    resize_height: int = Form(None)
 ):
     try:
         # Supprimer le fichier de signal d'interruption s'il existe
@@ -71,12 +85,12 @@ async def prepare_evaluation(
         messages = []
 
         # Charger le modèle
-        model = load_model(network)
+        model = load_model(network, model_name)
         messages.append("load_model ok")
 
         # Charger et transformer l'image
         image_data = await input_image.read()
-        image_tensor, image_size = validate_and_transform_image(image_data)
+        image_tensor, image_size = validate_and_transform_image(image_data, resize_input, resize_width, resize_height)
         messages.append(f"Image loaded successfully, size: {image_size[0]}x{image_size[1]} pixels")
 
         if image_tensor is not None:
@@ -87,7 +101,7 @@ async def prepare_evaluation(
 
             # Générer le zonotope
             _, zonotope_espilon_sparse_tensor = ZonoSparseGeneration(image_tensor, noise).total_zono()
-            
+            messages.append(f"Zonotope generated successfully, dimensions: {zonotope_espilon_sparse_tensor.shape}")
 
             if num_symbol != 'full':
                 try:
@@ -95,7 +109,7 @@ async def prepare_evaluation(
                     zonotope_espilon_sparse_tensor = resize_sparse_coo_tensor(zonotope_espilon_sparse_tensor, (num_symbol, *image_tensor.shape[1:]))
                 except ValueError:
                     raise HTTPException(status_code=400, detail="Invalid value for num_symbol. It should be 'full' or an integer.")
-            messages.append(f"Zonotope generated successfully, dimensions: {zonotope_espilon_sparse_tensor}")
+
             # Exécuter UnStackNetwork
             unstack_network = UnStackNetwork(model, image_tensor.shape[1:])
             messages.append("UnStackNetwork executed successfully")
@@ -157,7 +171,7 @@ async def execute_evaluation():
 
         # Évaluation du modèle
         result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)
-        argmax = torch.topk(result['center'], 10).indices
+        argmax = torch.topk(model(image_tensor).squeeze(0), 10).indices
 
         response = {
             "argmax": argmax.tolist(),

@@ -49,11 +49,11 @@ class AbstractReLU(nn.Module):
         mask_1 =(sgn==2) + (sgn==1)
         mask_0 = (sgn==-2)+(sgn==-1)
 
-        mask_center = torch.zeros_like(x_center)
+        mask_center = torch.ones_like(x_center)
        
-       
-        x_center[mask_p] = coef_approx_linear[mask_p]*x_center[mask_p] + bias_approx_linear[mask_p]
-        x_center[mask_0] = 0
+        mask_center[mask_1] = x_center[mask_1]
+        mask_center[mask_p] = coef_approx_linear[mask_p]*x_center[mask_p] + bias_approx_linear[mask_p]
+        mask_center[mask_0] = 0
         """ 
         x[0,mask_p]=(coef_approx_linear[mask_p]*x[0,mask_p]+bias_approx_linear[mask_p])
         x[0,mask_1]=x[0,mask_1]
@@ -84,7 +84,7 @@ class AbstractReLU(nn.Module):
              
              trash_layer = torch.zeros_like(trash_layer)
         """
-        return x_center.to('cpu'),trash_layer.to('cpu'), mask_epsilon.to('cpu')
+        return mask_center.to('cpu'),trash_layer.to('cpu'), mask_epsilon.to('cpu')
     
 
     

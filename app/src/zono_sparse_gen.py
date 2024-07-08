@@ -124,10 +124,10 @@ class ZonoSparseGeneration:
                 sparse_indice = torch.cat((torch.tensor([i + self.start_index]), indice[1:])).tolist()
                 global_storage['indices'].append(sparse_indice)
                 global_storage['values'].append(self.input[tuple(indice.tolist())])
-
+            
             indice_tensor = torch.tensor(global_storage['indices'], dtype=torch.int32).t()
             values_tensor = torch.tensor(global_storage['values'], dtype=torch.float32)
-            dim = tuple(torch.cat((torch.tensor([len(indices)]), torch.tensor(list_of_shape(self.input.squeeze(0))))))
+            dim = tuple(torch.cat((torch.tensor([len(indices)+self.start_index]), torch.tensor(list_of_shape(self.input.squeeze(0))))))
 
             sparse_zonotope = torch.sparse_coo_tensor(indice_tensor, values_tensor, size=dim).coalesce()
 

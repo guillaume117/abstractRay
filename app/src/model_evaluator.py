@@ -223,11 +223,12 @@ class ModelEvaluator:
             zono, sum = evaluator.evaluate_all_chunks(num_workers=num_workers)
             len_zono = zono.size(0)
             mask_epsilon = torch.ones_like(mask_epsilon)
-
+          
             _, new_sparse = ZonoSparseGeneration(trash,from_trash=True,start_index=len_zono).total_zono()
-            print(new_sparse)
+            
             
             if new_sparse is not None:
+                print(f'new_sparse size {new_sparse.size()}')
                 evaluator_new_noise = SparseEvaluation(new_sparse,
                                                     chunk_size = dim_chunk_val,
                                                     function=function_abs, 
@@ -239,11 +240,11 @@ class ModelEvaluator:
                 zono_size = list(zono.size())
                 new_sparse_size = list(new_sparse.size())
             
-                new_size  =[zono_size[0]+new_sparse_size[0],*zono_size[1:]]
+                new_size  =[zono_size[0]+new_sparse._nnz(),*zono_size[1:]]
     
                 indices = torch.cat([zono.indices(), new_sparse.indices()], dim=1)
                 values = torch.cat([zono.values(), new_sparse.values()])
-                zono = torch.sparse_coo_tensor(indices, values, size = new_size).coalesce()
+                zono = torch.sparse_coo_tensor(indices, values, size = new_sparse.size()).coalesce()
             new_sparse = None
 
 
@@ -269,8 +270,7 @@ class ModelEvaluator:
             if epsilon_layer is None : 
 
                 epsilon_layer = self.details[f'epsilon_{self.name}']
-                print("8"*100)
-                print(epsilon_layer)
+                
         
             evaluator = SparseEvaluation(self.zonotope_espilon_sparse_tensor, 
                                         chunk_size=dim_chunk_val, 
@@ -281,11 +281,13 @@ class ModelEvaluator:
             self.zonotope_espilon_sparse_tensor, self.sum_abs = evaluator.evaluate_all_chunks(num_workers=num_workers)
             self.len_zono = self.zonotope_espilon_sparse_tensor.size(0)
             self.mask_epsilon = torch.ones_like(self.mask_epsilon)
-
+           
             _, new_sparse = ZonoSparseGeneration(self.trash,from_trash=True,start_index=self.len_zono).total_zono()
+            
         
             
             if new_sparse is not None:
+                print(f'new_sparse size {new_sparse.size()}')
                 evaluator_new_noise = SparseEvaluation(new_sparse,
                                                     chunk_size = dim_chunk_val,
                                                     function=epsilon_layer, 
@@ -297,11 +299,12 @@ class ModelEvaluator:
                 zono_size = list(self.zonotope_espilon_sparse_tensor.size())
                 new_sparse_size = list(new_sparse.size())
             
-                new_size  =[zono_size[0]+new_sparse_size[0],*zono_size[1:]]
+                new_size  =[zono_size[0]+new_sparse._nnz(),*zono_size[1:]]
                 
-                indices = torch.cat([self.zonotope_espilon_sparse_tensor.indices(), new_sparse.indices()], dim=1)
-                values = torch.cat([self.zonotope_espilon_sparse_tensor.values(), new_sparse.values()])
-                self.zonotope_espilon_sparse_tensor = torch.sparse_coo_tensor(indices, values, size = new_size).coalesce()
+                #indices = torch.cat([self.zonotope_espilon_sparse_tensor.indices(), new_sparse.indices()], dim=1)
+                self.zonotope_espilon_sparse_tensor= torch.sparse_coo_tensor(self.zonotope_espilon_sparse_tensor.indices(),self.zonotope_espilon_sparse_tensor.values(), new_sparse.size()).coalesce()
+                self.zonotope_espilon_sparse_tensor += new_sparse
+                #torch.sparse_coo_tensor(indices, values, size = new_sparse.size()).coalesce()
             new_sparse = None
 
 
@@ -329,8 +332,11 @@ class ModelEvaluator:
 
 
             for name, details in self.output.items():
-                print(name)
-                print(details)
+                print("#"*100)
+                print(f'layer name {name}')
+                print("-"*100)
+                print(f'layer details {details}')
+                print("#"*100)
                 self.name = name
                 self.details = details
 
@@ -346,7 +352,7 @@ class ModelEvaluator:
                     self.process_linear_layer()
                     self.mask_epsilon = torch.ones_like(self.input)
 
-                    print('name passed = ',self.name)
+                    
                     
                 
                 activation_name = self.details.get('activation', None)
