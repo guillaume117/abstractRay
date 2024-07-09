@@ -17,13 +17,12 @@ public:
         group_out_channels_ = out_channels_ / groups_;
     }
 
-    at::Tensor operator()(const at::Tensor& sparse_tensor) {
+    at::Tensor operator()(const at::Tensor& sparse_tensor, const at::Tensor& mask) {
         auto coo = sparse_tensor.coalesce();
         auto values = coo.values();
         auto indices = coo.indices();
 
         int B = sparse_tensor.size(0);
-        int C = sparse_tensor.size(1);
         int W = sparse_tensor.size(2);
         int H = sparse_tensor.size(3);
         int out_height = (W + 2 * padding_ - kernel_size_) / stride_ + 1;
@@ -34,13 +33,17 @@ public:
 
         int nnz = values.size(0);
 
-        #pragma omp parallel for
+        #pragma omp parallel for num_threads(14)
         for (int i = 0; i < nnz; ++i) {
             int b = indices[0][i].item<int>();
             int c = indices[1][i].item<int>();
             int w = indices[2][i].item<int>();
             int h = indices[3][i].item<int>();
             float value = values[i].item<float>();
+
+            // Apply mask
+            float mask_value = mask[c][w][h].item<float>();
+            value *= mask_value;
 
             int group = c / group_in_channels_;
             int c_in_group = c % group_in_channels_;
@@ -82,7 +85,6 @@ private:
     int group_in_channels_, group_out_channels_;
     std::vector<float> weights_, bias_;
 };
-
 
 PYBIND11_MODULE(sparse_conv2d, m) {
     py::class_<SparseConv2D>(m, "SparseConv2D")

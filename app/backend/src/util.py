@@ -3,7 +3,33 @@ import torch
 
 import random
 import numpy as np
+import torch.nn as nn
 
+
+
+class SimpleCNN(nn.Module):
+    def __init__(self):
+        super(SimpleCNN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.relu1 = nn.ReLU()
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.relu2 = nn.ReLU()
+        self.maxpool2D = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(8, 8))
+        self.fc1 = nn.Linear(in_features=2048, out_features=512)
+        self.relu3 = nn.ReLU()
+        self.fc2 = nn.Linear(in_features=512, out_features=10)
+        self.relu4 = nn.ReLU()
+
+    def forward(self, x):
+        x = self.relu1(self.conv1(x))
+        x = self.relu2(self.conv2(x))
+        x = self.maxpool2D(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.relu3(self.fc1(x))
+        x = self.relu4(self.fc2(x))
+        return x
 
 def sparse_tensor_stats(sparse_tensor):
     """This function aims to monitor the benefits it terms of memory footprint from sparse elements vs dense """
@@ -77,29 +103,30 @@ def sparse_dense_broadcast_mult(sparse_tensor, multiplicative_tensor):
     Retourne:
     new_sparse_tensor -- Nouveau tenseur sparse avec les valeurs mises à jour.
     """
-    # Vérifiez que les dimensions des tenseurs sont compatibles
+ 
     assert sparse_tensor.shape[1:] == multiplicative_tensor.shape[1:], "Les dimensions des tenseurs doivent être compatibles"
     
-    # Récupérer les indices et les valeurs du tenseur sparse
+ 
     sparse_indices = sparse_tensor._indices()
     sparse_values = sparse_tensor._values()
     
-    # Créer un tensor vide pour stocker les nouvelles valeurs
+  
     new_values = torch.empty_like(sparse_values)
     
-    # Multiplier toutes les valeurs correspondantes par les valeurs du tenseur multiplicatif
-    for i in range(multiplicative_tensor.size(1)):  # itérer sur C
-        for j in range(multiplicative_tensor.size(2)):  # itérer sur H
-            for k in range(multiplicative_tensor.size(3)):  # itérer sur W
+   
+    for i in range(multiplicative_tensor.size(1)):  
+        for j in range(multiplicative_tensor.size(2)):  
+            for k in range(multiplicative_tensor.size(3)): 
                 mask = (sparse_indices[1] == i) & (sparse_indices[2] == j) & (sparse_indices[3] == k)
                 new_values[mask] = sparse_values[mask] * multiplicative_tensor[0, i, j, k]
-    
-    # Créer le nouveau tenseur sparse avec les valeurs mises à jour
+
     new_sparse_tensor = torch.sparse_coo_tensor(sparse_indices, new_values, sparse_tensor.size())
     
     return new_sparse_tensor
 
-# Exemple d'utilisation
+
+
+
 indices = torch.LongTensor([[0, 0, 1, 1, 2, 2, 3, 3],
                             [0, 1, 0, 1, 0, 1, 0, 1],
                             [0, 1, 2, 3, 4, 0, 1, 2],
@@ -115,4 +142,6 @@ multiplicative_tensor = torch.randn(1, 5, 5, 5)
 new_sparse_tensor = sparse_dense_broadcast_mult(sparse_tensor, multiplicative_tensor)
 
 print(new_sparse_tensor)
+
+
 

@@ -5,6 +5,11 @@ from typing import Callable
 import torch.nn as nn
 import ray
 from tqdm import tqdm
+import sys 
+sys.path.append('../cpuconv2D')
+sys.path.append('src/cpuconv2D')
+import sparse_conv2d
+
 dtyped =torch.long
 @ray.remote#(num_gpus=1)
 class SparseWorker:
@@ -92,8 +97,28 @@ class SparseEvaluation:
             self.dense_shape = list(x.size())
             self.device = device
             self.eval_start_index = eval_start_index
+            self.conv2d_type = False
             
+            if isinstance(function, nn.Conv2d):
+                self.conv2d_type = True
+            if self.conv2d_type: #function = nn.Conv2d()
+                weights_tensor = function.weight.data
+                bias = []
+                in_chanels = function.in_channels
+                out_chanels = function.out_channels
+                kernel_size = function.kernel_size[0]
+                stride = function.stride[0]
+                padding = function.padding[0]
+                groups = function.groups
 
+                weights = weights_tensor.numpy().flatten().tolist()
+              
+                bias = []
+           
+
+                self.conv = sparse_conv2d.SparseConv2D(in_chanels, out_chanels, kernel_size, stride, padding,groups, weights,bias)
+
+                
             if function is None:
                 self.function = lambda x: x
             else:
@@ -204,9 +229,15 @@ class SparseEvaluation:
                         chunk_indices.t(), chunk_values,
                         torch.Size([chunk_size] + self.dense_shape[1:])
                     ).coalesce()
+                    if self.conv2d_type:
+                 
+                        func_output = self.conv(chunk_sparse_tensor,self.mask_coef.squeeze(0))
+                    
+                    else: 
 
-                    chunk_dense_tensor = chunk_sparse_tensor.to_dense().to(self.device)
-                    func_output = self.function(self.mask_coef * chunk_dense_tensor)
+                        chunk_dense_tensor = chunk_sparse_tensor.to_dense().to(self.device)
+                        func_output = self.function(self.mask_coef * chunk_dense_tensor)
+                        del chunk_dense_tensor
 
                     func_sum = torch.abs(func_output).sum(dim=0)
                     if function_sum is None:
@@ -222,7 +253,7 @@ class SparseEvaluation:
                     global_storage['indices'].append(add_indices.cpu())
                     global_storage['values'].append(func_output_sparse.values().cpu())
 
-                    del chunk_dense_tensor, chunk_sparse_tensor, func_output, func_output_sparse, add_indices
+                    del  chunk_sparse_tensor, func_output, func_output_sparse, add_indices
                     torch.cuda.empty_cache()
 
         

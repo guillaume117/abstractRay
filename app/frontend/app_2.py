@@ -8,7 +8,7 @@ from PIL import Image
 st.title("Model Evaluator")
 
 # Sélection du modèle
-model_option = st.selectbox("Choose a model", ["Custom", "VGG16", "VGG19", "ResNet"])
+model_option = st.selectbox("Choose a model", ["Custom", "VGG16", "VGG19", "ResNet","SimpleCNN"])
 
 # Chargement des fichiers
 if model_option == "Custom":
@@ -68,6 +68,13 @@ def prepare_evaluation():
                 st.info(message)
             st.session_state.prepared = True
             st.session_state.messages = result["messages"]
+
+            # Affichage de l'image redimensionnée après préparation
+            if resize_input:
+                image = Image.open(uploaded_image)
+                resized_image = image.resize((resize_width, resize_height))
+                st.image(resized_image, caption='Resized Image')
+
         else:
             st.error(f"Error: {response.status_code} - {response.text}")
             st.session_state.prepared = False
@@ -80,7 +87,12 @@ def execute_evaluation():
     if response.status_code == 200:
         result = response.json()
         st.session_state.result = result
+        st.session_state.relevance_index = 0
         plot_results(result)
+        
+        # Afficher les images de relevance avec navigation
+        if num_symbol == 'Full':
+            display_relevance_image(result, 0,noise)
     else:
         st.error(f"Error: {response.status_code} - {response.text}")
 
@@ -108,6 +120,29 @@ def plot_results(result):
 
     st.pyplot(fig)
 
+def display_relevance_image(result, index,noise):
+    relevance_images = result['relevance']
+    num_images = len(relevance_images)
+    st.session_state.relevance_index = index % num_images
+
+    relevance_image = np.array(relevance_images[st.session_state.relevance_index])/noise
+    relevance_image = (relevance_image * 255).astype(np.uint8)
+    print(max(relevance_image)-min(relevance_image))
+    relevance_image = Image.fromarray(relevance_image).resize((resize_width, resize_height))
+
+    # Superimpose the original image
+    original_image = Image.open(uploaded_image).resize((resize_width, resize_height)).convert("RGBA")
+    relevance_image = relevance_image.convert("RGBA")
+    
+
+    blended_image = Image.blend(original_image, relevance_image, alpha=0.5)
+    st.image(blended_image, caption=f'Relevance Image {st.session_state.relevance_index + 1}/{num_images}')
+
+    if st.button("Previous", key="prev_button"):
+        display_relevance_image(result, st.session_state.relevance_index - 1)
+    if st.button("Next", key="next_button"):
+        display_relevance_image(result, st.session_state.relevance_index + 1)
+
 if 'prepared' not in st.session_state:
     st.session_state.prepared = False
 
@@ -121,13 +156,14 @@ if st.session_state.prepared:
     st.success("Preparation completed. You can now execute the evaluation.")
     if st.button("Execute Evaluation"):
         execute_evaluation()
+        if st.button("Interrupt Evaluation"):
+            response = requests.post("http://localhost:8000/interrupt_evaluation/")
+            if response.status_code == 200:
+                st.warning("Evaluation interrupted by the user.")
+            else:
+                st.error(f"Error: {response.status_code} - {response.text}")
 
 if st.session_state.result:
     plot_results(st.session_state.result)
 
-if st.button("Interrupt Evaluation"):
-    response = requests.post("http://localhost:8000/interrupt_evaluation/")
-    if response.status_code == 200:
-        st.warning("Evaluation interrupted by the user.")
-    else:
-        st.error(f"Error: {response.status_code} - {response.text}")
+

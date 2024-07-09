@@ -12,7 +12,7 @@ import os
 import sys
 sys.path.append('app/src')
 sys.path.append('./src')
-from util import sparse_tensor_stats, resize_sparse_coo_tensor
+from util import sparse_tensor_stats, resize_sparse_coo_tensor,SimpleCNN
 from zono_sparse_gen import ZonoSparseGeneration
 from model_evaluator import ModelEvaluator
 from unstack_network2 import UnStackNetwork
@@ -50,7 +50,11 @@ def load_model(network_file, model_name):
         return models.vgg19(pretrained=True).eval()
     elif model_name == "resnet":
         return models.resnet18(pretrained=True).eval()
+    elif model_name == "simplecnn":
+        model = SimpleCNN().eval()
+        return model
     else:
+        print(model_name)
         raise ValueError("Unsupported model name.")
 
 def validate_and_transform_image(image_data, resize_input, resize_width, resize_height):
@@ -179,7 +183,8 @@ async def execute_evaluation():
             "center": result['center'].squeeze(0)[argmax].tolist(),
             "min": result['min'].squeeze(0)[argmax].tolist(),
             "max": result['max'].squeeze(0)[argmax].tolist(),
-            "diff_center_true": torch.max(model(image_tensor) - result['center']).item()
+            "diff_center_true": torch.max(model(image_tensor) - result['center']).item(),
+            "relevance": result['relevance'][argmax].tolist(),
         }
         return JSONResponse(content=response)
     except Exception as e:

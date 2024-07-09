@@ -15,7 +15,7 @@ rule compile
 
 
 
-build /home/guillaume/Documents/AbstratRay/proto/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o: compile /home/guillaume/Documents/AbstratRay/proto/cpuconv2D/sparse_conv2d.cpp
+build /home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o: compile /home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/sparse_conv2d.cpp
 
 
 

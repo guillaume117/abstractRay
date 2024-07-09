@@ -6,7 +6,7 @@ import sys
 
 sys.path.append('app/src')
 sys.path.append('./src')
-from util import sparse_tensor_stats, get_largest_tensor_size,sparse_dense_broadcast_mult
+from util import sparse_tensor_stats, get_largest_tensor_size,sparse_dense_broadcast_mult, resize_sparse_coo_tensor
 
 
 from sparse_evaluation_4 import SparseEvaluation  
@@ -22,9 +22,11 @@ class ModelEvaluator:
     def __init__(self, unstacked_model, input,num_workers = 0,available_RAM = 8, device =torch.device('cpu')):
         self.output = unstacked_model
         self.input = input
+        self.input_copy = input
         self.num_workers = num_workers
         self.available_RAM = available_RAM
         self.device = device
+        
         
     def dim_chunk(self, available_RAM=None):
         if available_RAM is None:
@@ -414,11 +416,14 @@ class ModelEvaluator:
                         
                         
 
-                        
+            size = self.input_copy.numel()
+            print(size)
+                      
             results = {
                 'center': self.input,
                 'min': self.input-self.sum_abs,
                 'max': self.input+self.sum_abs,
-                'relevance':self.zonotope_espilon_sparse_tensor
+                'relevance':resize_sparse_coo_tensor(self.zonotope_espilon_sparse_tensor,(self.zonotope_espilon_sparse_tensor.size(0),size)).to_dense()
             }
+            print(results)
             return results
