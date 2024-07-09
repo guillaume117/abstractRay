@@ -1,0 +1,13 @@
+# kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: /home/guiberthelot/abstractRay/app
+        containerPath: /mnt/abstractRay/app
+  - role: worker
+    extraMounts:
+      - hostPath: /home/guiberthelot/abstractRay/app
+        containerPath: /mnt/abstractRay/app
+

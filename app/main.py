@@ -5,8 +5,8 @@ from onnx2torch import convert
 from PIL import Image
 import torchvision.transforms as transforms
 import sys 
-sys.path.append('app/src')
-sys.path.append('./src')
+sys.path.append(['app','/backend','/backend/src','/fronted'])
+
 import ray 
 from util import sparse_tensor_stats , resize_sparse_coo_tensor
 from zono_sparse_gen import ZonoSparseGeneration
