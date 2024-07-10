@@ -6,12 +6,22 @@ import torch.nn as nn
 import ray
 from tqdm import tqdm
 import sys 
-sys.path.append('../cpuconv2D')
+sys.path.append('cpuconv2D')
 sys.path.append('src/cpuconv2D')
+sys.path.append('app/src/cpuconv2D')
+sys.path.append('./app')
+sys.path.append('./app/backend')
+sys.path.append('./app/backend/src')
+sys.path.append('./app/backend/src/cpuconv2D')
+from util import sparse_tensor_stats , resize_sparse_coo_tensor,ensure_ray_initialized#,create_sparse_worker
 import sparse_conv2d
+import os
+os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
+
 
 dtyped =torch.long
-@ray.remote#(num_gpus=1)
+
+@ray.remote
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, worker_start_index, device):
         with torch.no_grad():
@@ -91,6 +101,9 @@ class SparseWorker:
 
 class SparseEvaluation:
     def __init__(self, x: FloatTensor, chunk_size: int, mask_coef: FloatTensor = None, function: Callable = None, eval_start_index=0, device=torch.device('cpu')):
+
+        
+        
         with torch.no_grad():   
             self.x = x
             self.chunk_size = chunk_size
@@ -99,8 +112,17 @@ class SparseEvaluation:
             self.eval_start_index = eval_start_index
             self.conv2d_type = False
             
+            if self.device == torch.device('cuda'):
+                self.num_gpus = 1
+                self.num_cpus = os.cpu_count()
+            else:
+                self.num_gpus = 0
+                self.num_cpus = os.cpu_count()
+
+
+
             if isinstance(function, nn.Conv2d):
-                self.conv2d_type = True
+                self.conv2d_type = False
             if self.conv2d_type: #function = nn.Conv2d()
                 weights_tensor = function.weight.data
                 bias = []
@@ -113,14 +135,13 @@ class SparseEvaluation:
 
                 weights = weights_tensor.numpy().flatten().tolist()
               
-                bias = []
            
 
                 self.conv = sparse_conv2d.SparseConv2D(in_chanels, out_chanels, kernel_size, stride, padding,groups, weights,bias)
 
                 
             if function is None:
-                self.function = lambda x: x
+                self.function = nn.Indentity()
             else:
                 self.function = function
             func_copy=self.function.to('cpu')
@@ -134,9 +155,13 @@ class SparseEvaluation:
             self.num_chunks = (self.dense_shape[0] + self.chunk_size - 1) // self.chunk_size
             self.output_size = list(func_copy(x0).shape)
             self.output_size[0] = self.dense_shape[0]
-            print("output_size", self.output_size)
+    
+
+    
+
 
     def evaluate_all_chunks(self, num_workers):
+        
         with torch.no_grad():
             if num_workers == 0:
                 return self.evaluate_chunks_directly()
@@ -165,7 +190,7 @@ class SparseEvaluation:
                     worker_indices.t(), worker_values,
                     torch.Size([worker_size] + self.dense_shape[1:])
                 ).coalesce()
-
+                
                 worker = SparseWorker.remote(worker_sparse_tensor, self.chunk_size, self.mask_coef, self.function, self.dense_shape, chunk_start, self.device)
                 workers.append(worker.evaluate_chunks.remote())
 
@@ -197,6 +222,9 @@ class SparseEvaluation:
         return global_sparse_tensor, function_sum.to('cpu')
 
     def evaluate_chunks_directly(self):
+        #if self.conv2d_type == True:
+        #    return self.evaluate_zono_directly()
+        
         with torch.no_grad():
             indices = self.x.indices().t()
             values = self.x.values()
@@ -222,8 +250,7 @@ class SparseEvaluation:
                     chunk_values = values[mask]
                     chunk_size = chunk_end - chunk_start
 
-                    if chunk_indices.size(0) == 0:
-                        continue
+                   
 
                     chunk_sparse_tensor = torch.sparse_coo_tensor(
                         chunk_indices.t(), chunk_values,
@@ -231,21 +258,22 @@ class SparseEvaluation:
                     ).coalesce()
                     if self.conv2d_type:
                  
-                        func_output = self.conv(chunk_sparse_tensor,self.mask_coef.squeeze(0))
-                    
+                        func_output_sparse = self.conv(chunk_sparse_tensor,self.mask_coef.squeeze(0)).coalesce()
+                      
                     else: 
 
                         chunk_dense_tensor = chunk_sparse_tensor.to_dense().to(self.device)
                         func_output = self.function(self.mask_coef * chunk_dense_tensor)
-                        del chunk_dense_tensor
+                        func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
+                        del chunk_dense_tensor, func_output
 
-                    func_sum = torch.abs(func_output).sum(dim=0)
+                    func_sum = torch.abs(func_output_sparse).sum(dim=0)
                     if function_sum is None:
                         function_sum = func_sum
                     else:
                         function_sum += func_sum
 
-                    func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
+                    
                     add_indices = func_output_sparse.indices().to(dtyped) + torch.tensor(
                         [[chunk_start + self.eval_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=dtyped, device=torch.device('cpu')
                     )
@@ -253,7 +281,7 @@ class SparseEvaluation:
                     global_storage['indices'].append(add_indices.cpu())
                     global_storage['values'].append(func_output_sparse.values().cpu())
 
-                    del  chunk_sparse_tensor, func_output, func_output_sparse, add_indices
+                    del  chunk_sparse_tensor, func_output_sparse, add_indices
                     torch.cuda.empty_cache()
 
         
@@ -263,15 +291,18 @@ class SparseEvaluation:
 
             global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=self.output_size).coalesce().to('cpu')
 
-        return global_sparse_tensor, function_sum.to('cpu')
-
+        return global_sparse_tensor, function_sum.unsqueeze(0).to('cpu')
+    
+    def evaluate_zono_directly(self):
+        self.x = self.conv(self.x,self.mask_coef.squeeze(0)).coalesce()
+        return self.x, torch.sum(torch.abs(self.x))
 
 def test_sparse_evaluation(x):
     
 
     function = nn.Conv2d(3, 3, 3)
     function.bias.data =torch.zeros_like(function.bias.data)
-    eval = SparseEvaluation(x, 100, function=function, device='cpu')
+    eval = SparseEvaluation(x, 100, function=function, device=torch.device('cpu'))
     result,sum = eval.evaluate_chunks_directly()
     with torch.no_grad():
         print(torch.sum(result)- torch.sum(function(x.to_dense())))
@@ -282,14 +313,15 @@ def test_sparse_evaluation_ray(x):
 
     function = nn.Conv2d(3, 3, 3)
     function.bias.data =torch.zeros_like(function.bias.data)
-    eval = SparseEvaluation(x, 100, function=function, device='cpu')
+    eval = SparseEvaluation(x, 100, function=function, device=torch.device('cpu'))
     result,sum = eval.evaluate_all_chunks(num_workers=5)
     with torch.no_grad():
         print(torch.sum(result)- torch.sum(function(x.to_dense())))
+
         print(f" diff de sum {sum.to_dense()- torch.sum(torch.abs(function(x.to_dense())),dim=0)}")
 
 if __name__ == "__main__":
-    x =torch.randn(5001, 3, 28, 28).to_sparse(
+    x =torch.randn(500, 3, 28, 28).to_sparse(
     )
     test_sparse_evaluation(x)
     test_sparse_evaluation_ray(x)

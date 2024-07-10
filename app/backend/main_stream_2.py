@@ -12,12 +12,14 @@ import os
 import sys
 sys.path.append('app/src')
 sys.path.append('./src')
-from util import sparse_tensor_stats, resize_sparse_coo_tensor,SimpleCNN
+from util import sparse_tensor_stats, resize_sparse_coo_tensor,SimpleCNN,ensure_ray_initialized
 from zono_sparse_gen import ZonoSparseGeneration
 from model_evaluator import ModelEvaluator
 from unstack_network2 import UnStackNetwork
 import io
 import uvicorn
+os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
+ensure_ray_initialized()
 
 app = FastAPI()
 
@@ -154,10 +156,7 @@ async def execute_evaluation():
         RAM = intermediate_results['RAM']
         unstack_network = intermediate_results['unstack_network']
 
-        if back_end == 'cuda':
-            sparse_worker_decorator = ray.remote(num_gpus=1)
-        else:
-            sparse_worker_decorator = ray.remote(num_cpus=1)
+    
 
         model_evaluator = ModelEvaluator(
             unstack_network.output,

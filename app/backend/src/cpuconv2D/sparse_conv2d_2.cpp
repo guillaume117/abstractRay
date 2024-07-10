@@ -30,11 +30,17 @@ public:
         int out_height = (W + 2 * padding_ - kernel_size_) / stride_ + 1;
         int out_width = (H + 2 * padding_ - kernel_size_) / stride_ + 1;
 
-        std::unordered_map<std::vector<int64_t>, float, torch::hash<std::vector<int64_t>>> out_map;
-        std::mutex out_map_mutex;
+        using key_t = std::vector<int64_t>;
+        struct ValueBatch {
+            std::vector<float> values;
+            std::vector<int> batch_indices;
+        };
+        std::unordered_map<key_t, ValueBatch, torch::hash<key_t>> index_map;
+        std::mutex index_map_mutex;
 
         int nnz = values.size(0);
 
+        // Step 1: Create the collection of dictionaries
         #pragma omp parallel for
         for (int i = 0; i < nnz; ++i) {
             int b = indices[0][i].item<int>();
@@ -43,9 +49,34 @@ public:
             int h = indices[3][i].item<int>();
             float value = values[i].item<float>();
 
-            // Apply mask
-            float mask_value = mask[c][w][h].item<float>();
-            value *= mask_value;
+            key_t key = {c, w, h};
+            {
+                std::lock_guard<std::mutex> guard(index_map_mutex);
+                index_map[key].values.push_back(value);
+                index_map[key].batch_indices.push_back(b);
+            }
+        }
+
+        std::unordered_map<key_t, float, torch::hash<key_t>> out_map;
+        std::mutex out_map_mutex;
+
+        std::vector<key_t> keys;
+        keys.reserve(index_map.size());
+        for (const auto& pair : index_map) {
+            keys.push_back(pair.first);
+        }
+
+        // Step 2: Apply the convolution operation
+        #pragma omp parallel for
+        for (size_t i = 0; i < keys.size(); ++i) {
+            const auto& key = keys[i];
+            const auto& value_batch = index_map[key];
+            const auto& values = value_batch.values;
+            const auto& batch_indices = value_batch.batch_indices;
+
+            int c = key[0];
+            int w = key[1];
+            int h = key[2];
 
             int group = c / group_in_channels_;
             int c_in_group = c % group_in_channels_;
@@ -55,14 +86,19 @@ public:
                     for (int kw = 0; kw < kernel_size_; ++kw) {
                         int h_out = (h - kw + padding_) / stride_;
                         int w_out = (w - kh + padding_) / stride_;
-                       
                         if (h_out >= 0 && h_out < out_height && w_out >= 0 && w_out < out_width) {
-                            std::vector<int64_t> key = {b, k_global, h_out, w_out};
-                            std::lock_guard<std::mutex> guard(out_map_mutex);
-                            #pragma omp critical 
-                            out_map[key] += value * weights_[(k_global * group_in_channels_ * kernel_size_ * kernel_size_) + 
-                                                             (c_in_group * kernel_size_ * kernel_size_) + 
-                                                             (kh * kernel_size_) + kw];
+                            for (size_t i = 0; i < values.size(); ++i) {
+                                int b = batch_indices[i];
+                                float value = values[i] * mask[c][w][h].item<float>();
+
+                                key_t out_key = {b, k_global, h_out, w_out};
+                                {
+                                    std::lock_guard<std::mutex> guard(out_map_mutex);
+                                    out_map[out_key] += value * weights_[(k_global * group_in_channels_ * kernel_size_ * kernel_size_) +
+                                                                         (c_in_group * kernel_size_ * kernel_size_) +
+                                                                         (kh * kernel_size_) + kw];
+                                }
+                            }
                         }
                     }
                 }
@@ -75,9 +111,11 @@ public:
                 for (int k = 0; k < out_channels_; ++k) {
                     for (int h_out = 0; h_out < out_height; ++h_out) {
                         for (int w_out = 0; w_out < out_width; ++w_out) {
-                            std::vector<int64_t> key = {b, k, h_out, w_out};
-                            std::lock_guard<std::mutex> guard(out_map_mutex);
-                            out_map[key] += bias_[k];
+                            key_t key = {b, k, h_out, w_out};
+                            {
+                                std::lock_guard<std::mutex> guard(out_map_mutex);
+                                out_map[key] += bias_[k];
+                            }
                         }
                     }
                 }
@@ -96,7 +134,7 @@ public:
 
         auto options_values = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
         auto options_indices = torch::TensorOptions().dtype(torch::kInt64).device(torch::kCPU);
-        auto output_indices = torch::tensor(out_indices, options_indices).reshape({-1, 4}).transpose(0,1);
+        auto output_indices = torch::tensor(out_indices, options_indices).reshape({-1, 4}).transpose(0, 1);
         auto output_values = torch::tensor(out_values, options_values);
         auto sparse_output = torch::sparse_coo_tensor(output_indices, output_values, {B, out_channels_, out_height, out_width}).coalesce();
 

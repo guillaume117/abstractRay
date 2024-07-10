@@ -1,11 +1,21 @@
-
 import torch
-
 import random
 import numpy as np
 import torch.nn as nn
+import ray
+import os
+#from sparse_evaluation_4 import SparseWorker
+"""
+def create_sparse_worker(num_cpus,num_gpus, *args, **kwargs):
+    SparseWorkerRemote = ray.remote(num_cpus=num_cpus,num_gpus=num_gpus)(SparseWorker)
+    return SparseWorkerRemote.remote(*args, **kwargs)
+"""
+def ensure_ray_initialized():
 
-
+    if not ray.is_initialized():
+        num_cpus = os.cpu_count()
+        print('ray_init')
+        ray.init(num_cpus=num_cpus)  
 
 class SimpleCNN(nn.Module):
     def __init__(self):

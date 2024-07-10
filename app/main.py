@@ -5,15 +5,19 @@ from onnx2torch import convert
 from PIL import Image
 import torchvision.transforms as transforms
 import sys 
-sys.path.append(['app','/backend','/backend/src','/fronted'])
-
+import os
+sys.path.append('./app')
+sys.path.append('./app/backend')
+sys.path.append('./app/backend/src')
+sys.path.append('./app/backend/src/cpuconv2D')
 import ray 
-from util import sparse_tensor_stats , resize_sparse_coo_tensor
+from util import sparse_tensor_stats , resize_sparse_coo_tensor,ensure_ray_initialized
 from zono_sparse_gen import ZonoSparseGeneration
 from model_evaluator import ModelEvaluator
-
 from unstack_network2 import UnStackNetwork
+os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
 
+ensure_ray_initialized()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Argument Parser for Network Configuration')

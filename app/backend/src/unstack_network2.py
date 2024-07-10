@@ -22,7 +22,7 @@ class UnStackNetwork:
                 else:
                     x = self.process_layer(name, module, x)
 
-            # Ajouter une couche Linear identité à la fin du réseau
+            
             x = self.add_identity_layer(x)
 
     def process_layer(self, name, layer, x):
