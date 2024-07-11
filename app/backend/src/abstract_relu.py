@@ -11,25 +11,25 @@ import gc
 
 
 class AbstractReLU(nn.Module):
-    max_symbol = np.inf
-    recycling = 1
+
 
     def __init__(self,max_symbols:Union[int,bool]=False):
         super(AbstractReLU,self).__init__()
    
     @staticmethod
-    def abstract_relu(
-                      x_center:torch.Tensor,
-                      x_abs:torch.Tensor,
-                      trash_layer:torch.Tensor,
-                      start_index: int = None,
+    def evaluate(abstract_domain,
                       add_symbol:bool=False,
                       device:torch.device=torch.device("cpu"))->Tuple[torch.Tensor, torch.Tensor, torch.Tensor ]:
+        print('test')
+        zonotope = abstract_domain['zonotope']
+        center = abstract_domain['center']
+        sum =   abstract_domain['sum']
+        trash = abstract_domain['trash']
+        mask_epsilon = abstract_domain['mask'] 
 
-
-        x_center = x_center.to(device)
-        x_abs = x_abs.to(device)
-        trash_layer = trash_layer.to(device)
+        x_center = center.to(device)
+        x_abs = sum.to(device)
+        trash_layer = trash.to(device)
         x_min = x_center-x_abs
         x_max = x_center+x_abs
       
@@ -84,7 +84,14 @@ class AbstractReLU(nn.Module):
              
              trash_layer = torch.zeros_like(trash_layer)
         """
-        return mask_center.to('cpu'),trash_layer.to('cpu'), mask_epsilon.to('cpu')
+        abstract_domain['zonotope'] = zonotope
+        abstract_domain['center'] = mask_center
+        abstract_domain['sum'] = sum
+        abstract_domain['trash'] = trash_layer.to('cpu')
+        abstract_domain['mask'] = mask_epsilon    
+        abstract_domain['perfect_domain']=False
+
+        return abstract_domain
     
 
     

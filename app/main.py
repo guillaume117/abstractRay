@@ -13,7 +13,7 @@ sys.path.append('./app/backend/src/cpuconv2D')
 import ray 
 from util import sparse_tensor_stats , resize_sparse_coo_tensor,ensure_ray_initialized
 from zono_sparse_gen import ZonoSparseGeneration
-from model_evaluator import ModelEvaluator
+from model_evaluator_refacto import ModelEvaluator
 from unstack_network2 import UnStackNetwork
 os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
 
@@ -99,9 +99,20 @@ if __name__ == '__main__':
                     sparse_worker_decorator = ray.remote(num_gpus=1)
                 else:
                     sparse_worker_decorator = ray.remote(num_cpus=1)
-                model_evaluator = ModelEvaluator(unstacked.output, image_tensor,num_workers=args.num_worker, available_RAM=args.RAM,device=torch.device(args.back_end))
 
-                result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)                
+                abstract_domain = {
+                    'zonotope' : zonotope_espilon_sparse_tensor,
+                    'center' : image_tensor,
+                    'sum': torch.zeros_like(image_tensor),
+                    'trash': torch.zeros_like(image_tensor),
+                    'mask': torch.ones_like(image_tensor),
+                    'perfect_domain':True
+
+
+                }
+                model_evaluator = ModelEvaluator(unstacked.output, abstract_domain,num_workers=args.num_worker, available_RAM=args.RAM,device=torch.device(args.back_end))
+
+                result = model_evaluator.evaluate_model()                
             except Exception as e:
                 print(f"Error during model inference: {e}")
         else:

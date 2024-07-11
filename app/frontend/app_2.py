@@ -90,8 +90,9 @@ def execute_evaluation():
         st.session_state.relevance_index = 0
         plot_results(result)
         
-        # Afficher les images de relevance avec navigation
+       
         if num_symbol == 'Full':
+            
             display_relevance_image(result, 0,noise)
     else:
         st.error(f"Error: {response.status_code} - {response.text}")

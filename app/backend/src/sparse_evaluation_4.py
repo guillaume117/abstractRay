@@ -60,8 +60,6 @@ class SparseWorker:
                 chunk_values = values[mask]
                 chunk_size = chunk_end - chunk_start
 
-                
-
                 chunk_sparse_tensor = torch.sparse_coo_tensor(
                     chunk_indices.t(), chunk_values,
                     torch.Size([chunk_size] + self.dense_shape[1:])

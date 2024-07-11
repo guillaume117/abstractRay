@@ -131,10 +131,7 @@ class ModelEvaluator:
                         )
             
             E1,S1,c1, t1 = ModelEvaluator.static_process_linear_layer(c1, E1 ,t1 ,ident, m1 , ident,ident,self.num_workers, self.available_RAM, self.device)
-            #print("k"*100)
-            #E3=sparse_dense_broadcast_mult(E1,m1)
-            #print("k"*100)
-            
+
 
             E2, S2, c2, t2 = ModelEvaluator.static_process_linear_layer(self.input,
                                                                 self.zonotope_espilon_sparse_tensor,
@@ -149,9 +146,9 @@ class ModelEvaluator:
             
             len_E2 = E2.size(0)
             
-            #E1,S1 = SparseAddition(E1, E2, chunk_size=chunk_size, device=self.device).addition(num_workers=self.num_workers)
+           
             dim1 = get_largest_tensor_size(E1,E2)
-            print(f'dim1 = {dim1}')
+   
             E1 = torch.sparse_coo_tensor(E1.indices(), E1.values(),size=dim1)
             E2 = torch.sparse_coo_tensor(E2.indices(), E2.values(),size=dim1)
             E1 = (E1 + E2).coalesce()
@@ -168,10 +165,10 @@ class ModelEvaluator:
                                                         self.num_workers,
                                                         self.available_RAM,
                                                         self.device)
-            chunk_size = ModelEvaluator.static_dim_chunk(c2,self.available_RAM)
+    
             #E2,S2 = SparseAddition(E2, E1, chunk_size=chunk_size, device=self.device).substraction(num_workers=self.num_workers)
             dim1 = get_largest_tensor_size(E1,E2)
-            print(f'dim1 = {dim1}')
+
             E2 = torch.sparse_coo_tensor(E2.indices(), E2.values(),size=dim1).coalesce()
             E1 = torch.sparse_coo_tensor(E1.indices(), E1.values(),size=dim1).coalesce()
             E2 = (E2 - E1).coalesce()
@@ -187,7 +184,7 @@ class ModelEvaluator:
           
             #E3,S3 = SparseAddition(E3, E1, chunk_size=chunk_size, device=self.device).addition(num_workers=self.num_workers)
             dim1 = get_largest_tensor_size(E1,E3)
-            print(f'dim1 = {dim1}')
+
             E3 = torch.sparse_coo_tensor(E3.indices(), E3.values(),size=dim1).coalesce()
             E1 = torch.sparse_coo_tensor(E1.indices(), E1.values(),size=dim1).coalesce()
             E3 = (E3 + E1).coalesce()
@@ -208,14 +205,14 @@ class ModelEvaluator:
            
             #E2,S2 = SparseAddition(E2, E3, chunk_size=chunk_size, device=self.device).substraction(num_workers=self.num_workers)
             dim1 = get_largest_tensor_size(E2,E3)
-            print(f'dim1 = {dim1}')
+ 
             E3 = torch.sparse_coo_tensor(E3.indices(), E3.values(),size=dim1).coalesce()
             E2 = torch.sparse_coo_tensor(E2.indices(), E2.values(),size=dim1).coalesce()
             E2 = (E2 - E3).coalesce()
             S2 = torch.sum(torch.abs(E2),dim=0).unsqueeze(0).to_dense()             
             c2 =c2-c3
             t2 =torch.abs(t3)+torch.abs(t2)
-            print(torch.sum(t2)*10)
+
             len_E2 = E2.size(0)
             c4, t4, m4= AbstractReLU.abstract_relu(
                             c2, S2,t2, start_index=len_E2, add_symbol=True
@@ -226,14 +223,14 @@ class ModelEvaluator:
 
             
           
-            dim1 = get_largest_tensor_size(E1,E3)
+            dim1 = get_largest_tensor_size(E3,E4)
             E3 = torch.sparse_coo_tensor(E3.indices(), E3.values(),size=dim1).coalesce()
             E4 = torch.sparse_coo_tensor(E4.indices(), E4.values(),size=dim1).coalesce()
             E4 = (E3 + E4).coalesce()
             S4 = torch.sum(torch.abs(E4),dim=0).unsqueeze(0).to_dense()             
             #E4,S4 = SparseAddition(E4, E3, chunk_size=chunk_size, device=self.device).addition(num_workers=self.num_workers)
 
-            print(E4.size())
+         
             del E1, E2, E3  
             return E4,S4, c4 +c3, torch.abs(t4)+torch.abs(t3)
 
@@ -318,7 +315,7 @@ class ModelEvaluator:
                                         mask_coef=self.mask_epsilon, 
                                         device= self.device)
             
-            self.zonotope_espilon_sparse_tensor, self.sum_abs = evaluator.evaluate_all_chunks(num_workers=num_workers)
+            self.zonotope_espilon_sparse_tensor, _ = evaluator.evaluate_all_chunks(num_workers=num_workers)
             self.len_zono = self.zonotope_espilon_sparse_tensor.size(0)
             self.mask_epsilon = torch.ones_like(self.mask_epsilon)
            
@@ -425,5 +422,5 @@ class ModelEvaluator:
                 'max': self.input+self.sum_abs,
                 'relevance':resize_sparse_coo_tensor(self.zonotope_espilon_sparse_tensor,(self.zonotope_espilon_sparse_tensor.size(0),size)).to_dense()
             }
-            print(results)
+          
             return results
