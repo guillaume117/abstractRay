@@ -23,7 +23,7 @@ dtyped =torch.long
 
 @ray.remote(num_gpus=1)
 class SparseWorker:
-    def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, worker_start_index, device):
+    def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, worker_start_index, device,verbose = False):
         with torch.no_grad():
             self.x_chunk = x_chunk.coalesce().to(device)
             self.chunk_size = chunk_size
@@ -34,6 +34,7 @@ class SparseWorker:
             self.dense_shape = dense_shape
             self.worker_start_index = worker_start_index
             self.device = device
+            self.verbose = verbose
 
     def evaluate_chunks(self):
         with torch.no_grad():
@@ -81,8 +82,9 @@ class SparseWorker:
                 del chunk_dense_tensor, chunk_sparse_tensor, func_output, func_output_sparse, add_indices
                 torch.cuda.empty_cache()
                 progress = (i + 1) / num_chunks
-                if i % 10 == 0:
-                    print(f"Worker {self.worker_start_index // self.dense_shape[0]} progress: {progress:.2%}")
+                if self.verbose : 
+                    if i % 10 == 0:
+                        print(f"Worker {self.worker_start_index // self.dense_shape[0]} progress: {progress:.2%}")
 
             if global_storage['indices']:
                 global_indices = torch.cat(global_storage['indices'], dim=1)
@@ -94,7 +96,7 @@ class SparseWorker:
         return global_indices, global_values
 
 class SparseEvaluation:
-    def __init__(self, x: FloatTensor, chunk_size: int, mask_coef: FloatTensor = None, function: Callable = None, eval_start_index=0, device=torch.device('cpu')):
+    def __init__(self, x: FloatTensor, chunk_size: int, mask_coef: FloatTensor = None, function: Callable = None, eval_start_index=0, device=torch.device('cpu'),verbose = False):
 
         
         
@@ -105,6 +107,7 @@ class SparseEvaluation:
             self.device = device
             self.eval_start_index = eval_start_index
             self.conv2d_type = False
+            self.verbose = verbose
             
             if self.device == torch.device('cuda'):
                 self.num_gpus = 1

@@ -7,10 +7,10 @@ from util import sparse_tensor_stats, get_largest_tensor_size,sparse_dense_broad
 
 from process_abstract_maxpool2d_layer import process_max_pool2D
 from process_linear_layer import static_process_linear_layer
-from sparse_evaluation_4 import SparseEvaluation  
+from sparse_evaluation import SparseEvaluation  
 from zono_sparse_gen import ZonoSparseGeneration
 from abstract_relu import AbstractReLU
-from sparse_addition_2 import SparseAddition
+from sparse_addition import SparseAddition
 from process_abstract_maxpool2d_layer import process_max_pool2D
 
 

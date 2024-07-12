@@ -14,8 +14,8 @@ sys.path.append('app/backend/src')
 sys.path.append('./src')
 from util import sparse_tensor_stats, resize_sparse_coo_tensor,SimpleCNN,ensure_ray_initialized
 from zono_sparse_gen import ZonoSparseGeneration
-from model_evaluator_refacto import ModelEvaluator
-from unstack_network2 import UnStackNetwork
+from evaluator import ModelEvaluator
+from unstack_network import UnStackNetwork
 import io
 import uvicorn
 os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
@@ -32,8 +32,8 @@ app.add_middleware(
 # Global variables to store intermediate results
 intermediate_results = {}
 
-def load_model(network_file, model_name):
-    if model_name == "custom":
+def load_model(network_file, network_name):
+    if network_name == "custom":
         filename = network_file.filename
         if filename.endswith('.onnx'):
             onnx_model = onnx.load_model(io.BytesIO(network_file.file.read()))
@@ -46,17 +46,17 @@ def load_model(network_file, model_name):
             return pytorch_model
         else:
             raise ValueError("Unsupported network model format. Please provide a .onnx or .pt/.pth file.")
-    elif model_name == "vgg16":
+    elif network_name  == "vgg16":
         return models.vgg16(pretrained=True).eval()
-    elif model_name == "vgg19":
+    elif network_name  == "vgg19":
         return models.vgg19(pretrained=True).eval()
-    elif model_name == "resnet":
+    elif network_name  == "resnet":
         return models.resnet18(pretrained=True).eval()
-    elif model_name == "simplecnn":
+    elif network_name  == "simplecnn":
         model = SimpleCNN().eval()
         return model
     else:
-        print(model_name)
+   
         raise ValueError("Unsupported model name.")
 
 def validate_and_transform_image(image_data, resize_input, resize_width, resize_height):
@@ -73,7 +73,7 @@ def validate_and_transform_image(image_data, resize_input, resize_width, resize_
 async def prepare_evaluation(
     network: UploadFile = File(None),
     input_image: UploadFile = File(...),
-    model_name: str = Form(...),
+    network_name : str = Form(...),
     num_worker: int = Form(...),
     back_end: str = Form(...),
     num_symbol: str = Form(...),
@@ -92,7 +92,7 @@ async def prepare_evaluation(
         messages = []
 
         # Charger le modèle
-        model = load_model(network, model_name)
+        model = load_model(network, network_name )
         messages.append("load_model ok")
 
         # Charger et transformer l'image
@@ -186,7 +186,7 @@ async def execute_evaluation():
         abstract_domain = model_evaluator.evaluate_model()
         argmax = torch.topk(model(image_tensor).squeeze(0), 10).indices
         size = image_tensor.numel()
-        print(size)
+    
 
         response = {
             "argmax": argmax.tolist(),

@@ -13,8 +13,8 @@ sys.path.append('./app/backend/src/cpuconv2D')
 import ray 
 from util import sparse_tensor_stats , resize_sparse_coo_tensor,ensure_ray_initialized
 from zono_sparse_gen import ZonoSparseGeneration
-from model_evaluator_refacto import ModelEvaluator
-from unstack_network2 import UnStackNetwork
+from evaluator import ModelEvaluator
+from unstack_network import UnStackNetwork
 os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
 
 ensure_ray_initialized()

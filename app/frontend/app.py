@@ -7,18 +7,17 @@ from PIL import Image
 
 st.title("Model Evaluator")
 
-# Sélection du modèle
+
 model_option = st.selectbox("Choose a model", ["Custom", "VGG16", "VGG19", "ResNet","SimpleCNN"])
 
-# Chargement des fichiers
+
 if model_option == "Custom":
     uploaded_network = st.file_uploader("Upload your network model (.onnx or .pt/.pth)", type=["onnx", "pt", "pth"])
 else:
-    uploaded_network = None  # Pas besoin de fichier pour les modèles préentraînés
+    uploaded_network = None  
 
 uploaded_image = st.file_uploader("Upload your input image", type=["jpg", "jpeg", "png"])
 
-# Options d'évaluation
 num_worker = st.number_input("Number of workers", min_value=0, value=1)
 back_end = st.selectbox("Backend", ["cpu", "cuda"])
 num_symbol = st.text_input("Number of symbols", value="Full")
@@ -30,7 +29,7 @@ if resize_input:
     resize_width = st.number_input("Resize width", min_value=1, value=224)
     resize_height = st.number_input("Resize height", min_value=1, value=224)
 
-# Placeholder for evaluation status
+
 evaluation_status = st.empty()
 
 def prepare_evaluation():
@@ -40,18 +39,18 @@ def prepare_evaluation():
         }
         if model_option == "Custom" and uploaded_network is not None:
             files['network'] = uploaded_network
-            model_name = "custom"
+            network_name  = "custom"
         else:
-            model_name = model_option.lower()
+            network_name  = model_option.lower()
 
-        # Convert num_symbol to str if it's an integer
+ 
         try:
             num_symbol_value = int(num_symbol)
         except ValueError:
             num_symbol_value = str(num_symbol)
 
         data = {
-            'model_name': model_name,
+            'network_name': network_name ,
             'num_worker': num_worker,
             'back_end': back_end,
             'num_symbol': num_symbol_value,
@@ -71,7 +70,7 @@ def prepare_evaluation():
             st.session_state.prepared = True
             st.session_state.messages = result["messages"]
 
-            # Affichage de l'image redimensionnée après préparation
+   
             if resize_input:
                 image = Image.open(uploaded_image)
                 resized_image = image.resize((resize_width, resize_height))
@@ -106,7 +105,7 @@ def plot_results(result):
     min_values = [float(x) for x in result["min"]]
     max_values = [float(x) for x in result["max"]]
 
-    x = np.arange(len(argmax))  # Les indices des classes
+    x = np.arange(len(argmax))  
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -133,7 +132,6 @@ def display_relevance_image(result, index,noise):
     print(max(relevance_image)-min(relevance_image))
     relevance_image = Image.fromarray(relevance_image).resize((resize_width, resize_height))
 
-    # Superimpose the original image
     original_image = Image.open(uploaded_image).resize((resize_width, resize_height)).convert("RGBA")
     relevance_image = relevance_image.convert("RGBA")
     

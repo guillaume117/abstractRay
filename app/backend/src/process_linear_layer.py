@@ -4,7 +4,7 @@ import sys
 sys.path.append('app/src')
 sys.path.append('./src')
 from util import sparse_tensor_stats, get_largest_tensor_size,sparse_dense_broadcast_mult, resize_sparse_coo_tensor
-from sparse_evaluation_4 import SparseEvaluation  
+from sparse_evaluation import SparseEvaluation  
 from zono_sparse_gen import ZonoSparseGeneration
 
 

@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn 
-import copy
 from typing import List, Union, Tuple
-from zono_sparse_gen import ZonoSparseGeneration
 import numpy as np
 import gc
 
@@ -19,7 +17,7 @@ class AbstractReLU(nn.Module):
     @staticmethod
     def evaluate(abstract_domain,
                       device:torch.device=torch.device("cpu"))->Tuple[torch.Tensor, torch.Tensor, torch.Tensor ]:
-        print('test')
+     
         zonotope = abstract_domain['zonotope']
         center = abstract_domain['center']
         sum =   abstract_domain['sum']
