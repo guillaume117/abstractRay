@@ -1,9 +1,7 @@
 import torch
 import custom_sparse
 
-indices = torch.tensor([[0, 0, 1, 1], [0, 1, 0, 1], [0, 0, 1, 1], [0, 1, 0, 1]], dtype=torch.int64)
-values = torch.tensor([1.0, 2.0, 3.0, 4.0], dtype=torch.float32)
-coo_tensor = torch.randn(8,1,1,2).to_sparse_coo()
+coo_tensor = torch.randn(80000,1,1,2).to_sparse_coo()
 print(coo_tensor)
 
 
