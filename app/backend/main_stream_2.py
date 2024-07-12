@@ -10,11 +10,11 @@ import torchvision.models as models
 import ray
 import os
 import sys
-sys.path.append('app/src')
+sys.path.append('app/backend/src')
 sys.path.append('./src')
 from util import sparse_tensor_stats, resize_sparse_coo_tensor,SimpleCNN,ensure_ray_initialized
 from zono_sparse_gen import ZonoSparseGeneration
-from model_evaluator import ModelEvaluator
+from model_evaluator_refacto import ModelEvaluator
 from unstack_network2 import UnStackNetwork
 import io
 import uvicorn
@@ -81,7 +81,8 @@ async def prepare_evaluation(
     RAM: float = Form(...),
     resize_input: bool = Form(...),
     resize_width: int = Form(None),
-    resize_height: int = Form(None)
+    resize_height: int = Form(None),
+    add_symbol:bool = Form(...)
 ):
     try:
         # Supprimer le fichier de signal d'interruption s'il existe
@@ -129,7 +130,8 @@ async def prepare_evaluation(
                 'num_worker': num_worker,
                 'back_end': back_end,
                 'RAM': RAM,
-                'unstack_network': unstack_network
+                'unstack_network': unstack_network,
+                'add_symbol': add_symbol
             }
 
             response = {
@@ -155,15 +157,23 @@ async def execute_evaluation():
         back_end = intermediate_results['back_end']
         RAM = intermediate_results['RAM']
         unstack_network = intermediate_results['unstack_network']
+        add_symbol = intermediate_results['add_symbol']
 
-    
+        abstract_domain = {
+                    'zonotope' : zonotope_espilon_sparse_tensor,
+                    'center' : image_tensor,
+                    'sum': torch.zeros_like(image_tensor),
+                    'trash': torch.zeros_like(image_tensor),
+                    'mask': torch.ones_like(image_tensor),
+                    'perfect_domain':True}
 
         model_evaluator = ModelEvaluator(
             unstack_network.output,
-            image_tensor,
+            abstract_domain,
             num_workers=num_worker,
             available_RAM=RAM,
-            device=torch.device(back_end)
+            device=torch.device(back_end),
+            add_symbol = add_symbol
         )
 
         # Vérifiez l'interruption périodiquement
@@ -173,17 +183,19 @@ async def execute_evaluation():
             # Ajoutez votre logique d'évaluation ici
 
         # Évaluation du modèle
-        result = model_evaluator.evaluate_model(zonotope_espilon_sparse_tensor)
+        abstract_domain = model_evaluator.evaluate_model()
         argmax = torch.topk(model(image_tensor).squeeze(0), 10).indices
+        size = image_tensor.numel()
+        print(size)
 
         response = {
             "argmax": argmax.tolist(),
             "true": model(image_tensor).squeeze(0)[argmax].tolist(),
-            "center": result['center'].squeeze(0)[argmax].tolist(),
-            "min": result['min'].squeeze(0)[argmax].tolist(),
-            "max": result['max'].squeeze(0)[argmax].tolist(),
-            "diff_center_true": torch.max(model(image_tensor) - result['center']).item(),
-            "relevance": result['relevance'][argmax].tolist(),
+            "center": abstract_domain['center'].squeeze(0)[argmax].tolist(),
+            "min": (abstract_domain['center'].squeeze(0)[argmax]- abstract_domain['sum'].squeeze(0)[argmax]).tolist(),
+            "max":(abstract_domain['center'].squeeze(0)[argmax]+ abstract_domain['sum'].squeeze(0)[argmax]).tolist(),
+            "diff_center_true": torch.max(model(image_tensor) - abstract_domain['center']).item(),
+            #"relevance":resize_sparse_coo_tensor(abstract_domain['zonotope'],size).to_dense()[argmax].tolist(),
         }
         return JSONResponse(content=response)
     except Exception as e:

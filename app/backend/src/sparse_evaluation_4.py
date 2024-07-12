@@ -13,15 +13,15 @@ sys.path.append('./app')
 sys.path.append('./app/backend')
 sys.path.append('./app/backend/src')
 sys.path.append('./app/backend/src/cpuconv2D')
-from util import sparse_tensor_stats , resize_sparse_coo_tensor,ensure_ray_initialized#,create_sparse_worker
 import sparse_conv2d
 import os
 os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
 
 
+
 dtyped =torch.long
 
-@ray.remote
+@ray.remote(num_gpus=1)
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, worker_start_index, device):
         with torch.no_grad():
@@ -44,7 +44,7 @@ class SparseWorker:
                 'indices': [],
                 'values': []
             }
-            function_sum = None
+     
 
             num_chunks = (self.x_chunk.size(0) + self.chunk_size - 1) // self.chunk_size
 
@@ -68,11 +68,7 @@ class SparseWorker:
                 chunk_dense_tensor = chunk_sparse_tensor.to_dense().to(self.device)
                 func_output = self.function(self.mask_coef * chunk_dense_tensor)
 
-                func_sum = torch.abs(func_output).sum(dim=0)
-                if function_sum is None:
-                    function_sum = func_sum
-                else:
-                    function_sum += func_sum
+     
 
                 func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
                 add_indices = func_output_sparse.indices().to(dtyped) + torch.tensor(
@@ -95,7 +91,7 @@ class SparseWorker:
                 global_indices = torch.empty((2, 0), dtype=dtyped)
                 global_values = torch.empty((0,), dtype=torch.float32)
 
-        return global_indices, global_values, function_sum.to('cpu')
+        return global_indices, global_values
 
 class SparseEvaluation:
     def __init__(self, x: FloatTensor, chunk_size: int, mask_coef: FloatTensor = None, function: Callable = None, eval_start_index=0, device=torch.device('cpu')):
@@ -195,18 +191,15 @@ class SparseEvaluation:
             results = ray.get(workers)
             global_indices = []
             global_values = []
-            function_sum = None
+     
 
-            for add_indices, func_values, func_sum in results:
+            for add_indices, func_values in results:
                 add_indices = add_indices + torch.tensor(
                     [[self.eval_start_index]] + [[0]] * (add_indices.size(0) - 1), dtype=dtyped, device=torch.device('cpu')
                 )
                 global_indices.append(add_indices)
                 global_values.append(func_values)
-                if function_sum is None:
-                    function_sum = func_sum
-                else:
-                    function_sum += func_sum
+  
 
             if global_indices:
                 global_indices = torch.cat(global_indices, dim=1)
@@ -217,7 +210,7 @@ class SparseEvaluation:
 
             global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=self.output_size).coalesce().to('cpu')
 
-        return global_sparse_tensor, function_sum.to('cpu')
+        return global_sparse_tensor
 
     def evaluate_chunks_directly(self):
         #if self.conv2d_type == True:
@@ -232,7 +225,7 @@ class SparseEvaluation:
                 'indices': [],
                 'values': []
             }
-            function_sum = None
+        
 
             num_chunks = (self.x.size(0) + self.chunk_size - 1) // self.chunk_size
 
@@ -265,13 +258,7 @@ class SparseEvaluation:
                         func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
                         del chunk_dense_tensor, func_output
 
-                    func_sum = torch.abs(func_output_sparse).sum(dim=0)
-                    if function_sum is None:
-                        function_sum = func_sum
-                    else:
-                        function_sum += func_sum
-
-                    
+                   
                     add_indices = func_output_sparse.indices().to(dtyped) + torch.tensor(
                         [[chunk_start + self.eval_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=dtyped, device=torch.device('cpu')
                     )
@@ -289,7 +276,7 @@ class SparseEvaluation:
 
             global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=self.output_size).coalesce().to('cpu')
 
-        return global_sparse_tensor, function_sum.unsqueeze(0).to('cpu')
+        return global_sparse_tensor
     
     def evaluate_zono_directly(self):
         self.x = self.conv(self.x,self.mask_coef.squeeze(0)).coalesce()
@@ -301,7 +288,8 @@ def test_sparse_evaluation(x):
     function = nn.Conv2d(3, 3, 3)
     function.bias.data =torch.zeros_like(function.bias.data)
     eval = SparseEvaluation(x, 100, function=function, device=torch.device('cpu'))
-    result,sum = eval.evaluate_chunks_directly()
+    result = eval.evaluate_chunks_directly()
+    sum = torch.sum(result,dim=0)
     with torch.no_grad():
         print(torch.sum(result)- torch.sum(function(x.to_dense())))
         print(f" diff de sum {sum.to_dense()- torch.sum(torch.abs(function(x.to_dense())),dim=0)}")
@@ -312,7 +300,8 @@ def test_sparse_evaluation_ray(x):
     function = nn.Conv2d(3, 3, 3)
     function.bias.data =torch.zeros_like(function.bias.data)
     eval = SparseEvaluation(x, 100, function=function, device=torch.device('cpu'))
-    result,sum = eval.evaluate_all_chunks(num_workers=5)
+    result = eval.evaluate_all_chunks(num_workers=5)
+    sum = torch.sum(result,dim=0)
     with torch.no_grad():
         print(torch.sum(result)- torch.sum(function(x.to_dense())))
 

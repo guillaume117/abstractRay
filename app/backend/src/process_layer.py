@@ -40,7 +40,6 @@ def process_layer(abstract_domain, name, details, num_worker, available_ram, dev
             return abstract_domain
         else :
             class_name = f"Abstract{activation_layer}"
-            print(class_name)
             AbstractClass = globals().get(class_name)
             if AbstractClass:
                 abstract_instance = AbstractClass

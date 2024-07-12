@@ -48,7 +48,7 @@ def static_process_linear_layer(abstract_domain,function_center,function_epsilon
                                     mask_coef=mask_epsilon, 
                                     device= device)
         
-        zonotope, _ = evaluator.evaluate_all_chunks(num_workers=num_workers)
+        zonotope = evaluator.evaluate_all_chunks(num_workers=num_workers)
         len_zono = zonotope.size(0)
         mask_epsilon = torch.ones_like(mask_epsilon)
         
@@ -63,7 +63,7 @@ def static_process_linear_layer(abstract_domain,function_center,function_epsilon
                                                     mask_coef = mask_epsilon,
                                                     eval_start_index=len_zono,
                                                     device =device)
-                new_sparse, _ = evaluator_new_noise.evaluate_all_chunks(num_workers=num_workers)
+                new_sparse = evaluator_new_noise.evaluate_all_chunks(num_workers=num_workers)
                 zonotope = torch.sparse_coo_tensor(zonotope.indices(), zonotope.values(), size = new_sparse.size()).coalesce()
                 zonotope += new_sparse
                 trash = static_process_trash_layer(trash,function_trash)
@@ -71,7 +71,7 @@ def static_process_linear_layer(abstract_domain,function_center,function_epsilon
         else : 
             trash = static_process_trash_layer(trash,function_trash)
 
-        sum_abs = torch.sum(torch.abs(zonotope),dim=0).unsqueeze(0).to_dense()
+        sum_abs = torch.sum(torch.abs(zonotope),dim=0).unsqueeze(0).to_dense()+torch.abs(trash)
 
         abstract_domain['zonotope'] = zonotope
         abstract_domain['center'] = center
@@ -79,5 +79,6 @@ def static_process_linear_layer(abstract_domain,function_center,function_epsilon
         abstract_domain['trash'] = trash
         abstract_domain['mask'] = torch.ones_like(center)
         abstract_domain['perfect_domain'] = True
+
               
         return abstract_domain

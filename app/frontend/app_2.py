@@ -24,6 +24,7 @@ back_end = st.selectbox("Backend", ["cpu", "cuda"])
 num_symbol = st.text_input("Number of symbols", value="Full")
 noise = st.number_input("Noise level", value=0.00001)
 RAM = st.number_input("Available RAM per worker", value=1.0)
+add_symbol = st.selectbox("Add symbol from trash",[True,False])
 resize_input = st.checkbox("Resize input image", value=True)
 if resize_input:
     resize_width = st.number_input("Resize width", min_value=1, value=224)
@@ -56,6 +57,7 @@ def prepare_evaluation():
             'num_symbol': num_symbol_value,
             'noise': noise,
             'RAM': RAM,
+            'add_symbol': add_symbol,
             'resize_input': resize_input,
             'resize_width': resize_width if resize_input else None,
             'resize_height': resize_height if resize_input else None

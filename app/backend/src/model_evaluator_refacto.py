@@ -10,14 +10,14 @@ from process_layer import process_layer
 
 class ModelEvaluator:
 
-    def __init__(self, unstacked_model, abstract_domain, num_workers = 0,available_RAM = 8, device =torch.device('cpu')):
+    def __init__(self, unstacked_model, abstract_domain, num_workers = 0,available_RAM = 8, device =torch.device('cpu'),add_symbol =True):
         
         self.model_unstacked = unstacked_model
         self.abstract_domain = abstract_domain
         self.num_workers = num_workers
         self.available_RAM = available_RAM
         self.device = device
-        self.add_symbol = True
+        self.add_symbol = add_symbol
 
     def evaluate_model(self):
 

@@ -18,7 +18,6 @@ class AbstractReLU(nn.Module):
    
     @staticmethod
     def evaluate(abstract_domain,
-                      add_symbol:bool=False,
                       device:torch.device=torch.device("cpu"))->Tuple[torch.Tensor, torch.Tensor, torch.Tensor ]:
         print('test')
         zonotope = abstract_domain['zonotope']
@@ -26,6 +25,7 @@ class AbstractReLU(nn.Module):
         sum =   abstract_domain['sum']
         trash = abstract_domain['trash']
         mask_epsilon = abstract_domain['mask'] 
+        #sum_eval = torch.sum(torch.abs(zonotope),dim=0).to_dense()+torch.abs(trash)
 
         x_center = center.to(device)
         x_abs = sum.to(device)

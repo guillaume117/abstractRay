@@ -3,10 +3,11 @@ import torch.nn as nn
 import sys
 sys.path.append('app/src')
 sys.path.append('./src')
-from util import sparse_tensor_stats, get_largest_tensor_size,sparse_dense_broadcast_mult, resize_sparse_coo_tensor
+from util import get_largest_tensor_size
 from process_linear_layer import static_process_linear_layer
 from abstract_relu import AbstractReLU
-from sparse_addition_2 import SparseAddition
+import copy
+
 
 def abstract_addition(abstract_domain_1,abstract_domain_2):
     
@@ -119,7 +120,7 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
 
         
 
-        abstract_domain_1 = static_process_linear_layer(abstract_domain,
+        abstract_domain_1 = static_process_linear_layer(copy.deepcopy(abstract_domain),
                                                         conv_0,
                                                         conv_0,
                                                         conv_0,
@@ -129,7 +130,7 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
                                                         add_symbol)
 
        
-        abstract_domain_1= AbstractReLU.evaluate(abstract_domain_1,add_symbol=add_symbol)
+        abstract_domain_1= AbstractReLU.evaluate(abstract_domain_1)
         
         abstract_domain_1 = static_process_linear_layer(abstract_domain_1,
                                                             ident,                            
@@ -141,7 +142,7 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
                                                             add_symbol)
 
 
-        abstract_domain_2 = static_process_linear_layer(abstract_domain,
+        abstract_domain_2 = static_process_linear_layer(copy.deepcopy(abstract_domain),
                                                         conv_1,
                                                         conv_1,
                                                         conv_1,
@@ -152,9 +153,9 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
         
         
         abstract_domain_1 = abstract_addition(abstract_domain_1,abstract_domain_2)
-        
+        del abstract_domain_2
 
-        abstract_domain_2= static_process_linear_layer(abstract_domain,
+        abstract_domain_2= static_process_linear_layer(copy.deepcopy(abstract_domain),
                                                         conv_2,
                                                         conv_2,
                                                         conv_2,
@@ -165,9 +166,9 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
         
   
         abstract_domain_2 = abstract_substraction(abstract_domain_2,abstract_domain_1)
-
+        
        
-        abstract_domain_3 = AbstractReLU.evaluate(abstract_domain_2, add_symbol=add_symbol)
+        abstract_domain_3 = AbstractReLU.evaluate(abstract_domain_2)
 
         abstract_domain_3 = static_process_linear_layer(abstract_domain_3,
                                                         ident,
@@ -182,7 +183,7 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
         
         
 
-        abstract_domain_2 = static_process_linear_layer(abstract_domain,
+        abstract_domain_2 = static_process_linear_layer(copy.deepcopy(abstract_domain),
                                                         conv_3,
                                                         conv_3,
                                                         conv_3, 
@@ -193,7 +194,7 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
         abstract_domain_2 = abstract_substraction(abstract_domain_2,abstract_domain_3)
 
        
-        abstract_domain_4= AbstractReLU.evaluate(abstract_domain_2, add_symbol=add_symbol)
+        abstract_domain_4= AbstractReLU.evaluate(abstract_domain_2)
 
         abstract_domain_4= static_process_linear_layer(abstract_domain_4,
                                                         ident, 
@@ -205,7 +206,7 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
                                                         add_symbol)
         abstract_domain_4 = abstract_addition(abstract_domain_3,abstract_domain_4)
        
-        print(abstract_domain['center'].size())
+ 
         
         return abstract_domain_4
 
