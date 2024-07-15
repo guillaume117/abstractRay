@@ -1,0 +1,26 @@
+#abstratray requirements
+
+torch
+torchvision
+numpy
+ray
+tqdm
+onnx
+onnx2torch
+pillow
+
+
+#Streamlit requirements
+
+fastapi
+pydantic<2.0.0
+python-multipart
+uvicorn
+requests
+altair<5.0.0
+matplotlib
+numpy
+Pillow
+pydantic<2.0.0
+streamlit==1.17.0
+plotly

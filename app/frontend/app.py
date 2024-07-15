@@ -4,8 +4,10 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+import os
 
 st.title("Model Evaluator")
+backend_url = os.getenv("BACKEND_URL", "http://abstratray:8000")
 
 
 model_option = st.selectbox("Choose a model", ["Custom", "VGG16", "VGG19", "ResNet","SimpleCNN"])
@@ -63,7 +65,7 @@ def prepare_evaluation():
             'resize_width': resize_width if resize_input else None,
             'resize_height': resize_height if resize_input else None
         }
-        response = requests.post("http://localhost:8000/prepare_evaluation/", files=files, data=data)
+        response = requests.post(f"{backend_url}/prepare_evaluation/", files=files, data=data)
         
         if response.status_code == 200:
             result = response.json()
@@ -86,7 +88,7 @@ def prepare_evaluation():
         st.session_state.prepared = False
 
 def execute_evaluation():
-    response = requests.post("http://localhost:8000/execute_evaluation/")
+    response = requests.post(f"{backend_url}/execute_evaluation/")
     if response.status_code == 200:
         result = response.json()
         st.session_state.result = result
@@ -160,7 +162,7 @@ if st.session_state.prepared:
     if st.button("Execute Evaluation"):
         execute_evaluation()
         if st.button("Interrupt Evaluation"):
-            response = requests.post("http://localhost:8000/interrupt_evaluation/")
+            response = requests.post(f"{backend_url}/interrupt_evaluation/")
             if response.status_code == 200:
                 st.warning("Evaluation interrupted by the user.")
             else:
