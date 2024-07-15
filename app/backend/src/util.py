@@ -4,7 +4,7 @@ import numpy as np
 import torch.nn as nn
 import ray
 import os
-#from sparse_evaluation_4 import SparseWorker
+
 """
 def create_sparse_worker(num_cpus,num_gpus, *args, **kwargs):
     SparseWorkerRemote = ray.remote(num_cpus=num_cpus,num_gpus=num_gpus)(SparseWorker)
@@ -16,27 +16,27 @@ def ensure_ray_initialized():
         num_cpus = os.cpu_count()
         print('ray_init')
         ray.init(num_cpus=num_cpus)  
-
+        
 class SimpleCNN(nn.Module):
     def __init__(self):
         super(SimpleCNN, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.relu1 = nn.ReLU()
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.relu2 = nn.ReLU()
-        self.maxpool2D = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(8, 8))
-        self.fc1 = nn.Linear(in_features=2048, out_features=512)
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(64 * 7 * 7, 256)
         self.relu3 = nn.ReLU()
-        self.fc2 = nn.Linear(in_features=512, out_features=10)
+        self.fc2 = nn.Linear(256, 10)
         self.relu4 = nn.ReLU()
 
     def forward(self, x):
-        x = self.relu1(self.conv1(x))
-        x = self.relu2(self.conv2(x))
-        x = self.maxpool2D(x)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
+        x = self.pool1(self.relu1(self.conv1(x)))
+        x = self.pool2(self.relu2(self.conv2(x)))
+        x = self.flatten(x)
+
         x = self.relu3(self.fc1(x))
         x = self.relu4(self.fc2(x))
         return x

@@ -232,7 +232,7 @@ class SparseEvaluation:
 
             num_chunks = (self.x.size(0) + self.chunk_size - 1) // self.chunk_size
 
-            for i in tqdm(range(num_chunks)):
+            for i in range(num_chunks):
                 with torch.no_grad():
                     chunk_start = i * self.chunk_size
                     chunk_end = min((i + 1) * self.chunk_size, self.x.size(0))

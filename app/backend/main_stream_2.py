@@ -23,13 +23,12 @@ ensure_ray_initialized()
 
 app = FastAPI()
 
-# Middleware to increase max file size
+
 app.add_middleware(
     GZipMiddleware,
     minimum_size=1000
 )
 
-# Global variables to store intermediate results
 intermediate_results = {}
 
 def load_model(network_file, network_name):
@@ -53,7 +52,10 @@ def load_model(network_file, network_name):
     elif network_name  == "resnet":
         return models.resnet18(pretrained=True).eval()
     elif network_name  == "simplecnn":
-        model = SimpleCNN().eval()
+        model = SimpleCNN()
+        model_weights_path = './src/CNN/simple_cnn_fashionmnist.pth'
+        model.load_state_dict(torch.load(model_weights_path))
+        model.eval()
         return model
     else:
    
@@ -82,7 +84,8 @@ async def prepare_evaluation(
     resize_input: bool = Form(...),
     resize_width: int = Form(None),
     resize_height: int = Form(None),
-    add_symbol:bool = Form(...)
+    add_symbol:bool = Form(...),
+    relevance_dump : bool = Form(...)
 ):
     try:
         # Supprimer le fichier de signal d'interruption s'il existe
@@ -131,7 +134,8 @@ async def prepare_evaluation(
                 'back_end': back_end,
                 'RAM': RAM,
                 'unstack_network': unstack_network,
-                'add_symbol': add_symbol
+                'add_symbol': add_symbol,
+                'renew_abstract_domain':relevance_dump,
             }
 
             response = {
@@ -176,13 +180,10 @@ async def execute_evaluation():
             add_symbol = add_symbol
         )
 
-        # Vérifiez l'interruption périodiquement
-        for i in range(10):  # Simulation d'une évaluation itérative
+        for i in range(10):  
             if os.path.exists('interrupt_signal'):
                 raise HTTPException(status_code=400, detail="Evaluation interrupted by the user.")
-            # Ajoutez votre logique d'évaluation ici
 
-        # Évaluation du modèle
         abstract_domain = model_evaluator.evaluate_model()
         argmax = torch.topk(model(image_tensor).squeeze(0), 10).indices
         size = image_tensor.numel()

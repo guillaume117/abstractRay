@@ -41,12 +41,14 @@ class ZonoSparseGeneration:
                     self.indices = torch.arange(1, num_elements, 1)
                 else:
                     self.indices = self.indices.to('cpu')
-                    self.indices = torch.tensor(self.indices)
+                    #self.indices = torch.tensor(self.indices)
                     num_elements = self.indices.numel()
 
                 if len(self.noise_intensity.flatten()) == 1:
                     self.noise_intensity = self.noise_intensity * torch.ones_like(self.indices)
                 else:
+                    print(self.noise_intensity.size())
+                    print(self.indices.size())
                     assert self.noise_intensity.size() == self.indices.size(), 'the length of noise intensity must be one or equal to indices shape'
 
                 for i in range(num_elements):
@@ -135,6 +137,9 @@ class ZonoSparseGeneration:
 def main(args):
     main()
 
+
+
+"""
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate sparse zonotope representations.")
 
@@ -152,3 +157,4 @@ if __name__ == "__main__":
 
     # Call the main function with parsed arguments
     main(args)
+"""
