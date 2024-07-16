@@ -1,0 +1,156 @@
+{
+    "context": {
+        "num_workers": 0,
+        "available_RAM": 10.0,
+        "device": "cpu",
+        "add_symbol": true,
+        "renew_abstract_domain": false,
+        "verbose": false
+    },
+    "layers": [
+        {
+            "layer_name": "conv1",
+            "input_tensor_size": [
+                1,
+                32,
+                28,
+                28
+            ],
+            "num_symbols": 784,
+            "nnz": 215168,
+            "memory_gain_percentage": "tensor(90.1545)",
+            "computation_time": 0.036736488342285156
+        },
+        {
+            "layer_name": "relu1",
+            "input_tensor_size": [
+                1,
+                32,
+                28,
+                28
+            ],
+            "num_symbols": 784,
+            "nnz": 215168,
+            "memory_gain_percentage": "tensor(90.1545)",
+            "computation_time": 0.0029239654541015625
+        },
+        {
+            "layer_name": "pool1",
+            "input_tensor_size": [
+                1,
+                32,
+                14,
+                14
+            ],
+            "num_symbols": 18462,
+            "nnz": 75018,
+            "memory_gain_percentage": "tensor(99.4169)",
+            "computation_time": 2.028665542602539
+        },
+        {
+            "layer_name": "conv2",
+            "input_tensor_size": [
+                1,
+                64,
+                14,
+                14
+            ],
+            "num_symbols": 18462,
+            "nnz": 4854208,
+            "memory_gain_percentage": "tensor(81.1355)",
+            "computation_time": 0.9092953205108643
+        },
+        {
+            "layer_name": "relu2",
+            "input_tensor_size": [
+                1,
+                64,
+                14,
+                14
+            ],
+            "num_symbols": 18462,
+            "nnz": 4854208,
+            "memory_gain_percentage": "tensor(81.1355)",
+            "computation_time": 0.001188516616821289
+        },
+        {
+            "layer_name": "pool2",
+            "input_tensor_size": [
+                1,
+                64,
+                7,
+                7
+            ],
+            "num_symbols": 26809,
+            "nnz": 921570,
+            "memory_gain_percentage": "tensor(90.1346)",
+            "computation_time": 3.7004518508911133
+        },
+        {
+            "layer_name": "flatten_flatten",
+            "input_tensor_size": [
+                1,
+                3136
+            ],
+            "num_symbols": 26809,
+            "nnz": 911247,
+            "memory_gain_percentage": "tensor(94.5806)",
+            "computation_time": 0.13651680946350098
+        },
+        {
+            "layer_name": "fc1",
+            "input_tensor_size": [
+                1,
+                256
+            ],
+            "num_symbols": 26809,
+            "nnz": 2191616,
+            "memory_gain_percentage": "tensor(-59.6665)",
+            "computation_time": 0.2871286869049072
+        },
+        {
+            "layer_name": "relu3",
+            "input_tensor_size": [
+                1,
+                256
+            ],
+            "num_symbols": 26809,
+            "nnz": 2191616,
+            "memory_gain_percentage": "tensor(-59.6665)",
+            "computation_time": 0.0002446174621582031
+        },
+        {
+            "layer_name": "fc2",
+            "input_tensor_size": [
+                1,
+                10
+            ],
+            "num_symbols": 26900,
+            "nnz": 86520,
+            "memory_gain_percentage": "tensor(-60.8178)",
+            "computation_time": 0.07661819458007812
+        },
+        {
+            "layer_name": "relu4",
+            "input_tensor_size": [
+                1,
+                10
+            ],
+            "num_symbols": 26900,
+            "nnz": 86520,
+            "memory_gain_percentage": "tensor(-60.8178)",
+            "computation_time": 0.00023365020751953125
+        },
+        {
+            "layer_name": "identity_layer",
+            "input_tensor_size": [
+                1,
+                10
+            ],
+            "num_symbols": 26910,
+            "nnz": 85620,
+            "memory_gain_percentage": "tensor(-59.0858)",
+            "computation_time": 0.008281707763671875
+        }
+    ]
+}

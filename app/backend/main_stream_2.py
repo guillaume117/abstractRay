@@ -20,7 +20,7 @@ import io
 import uvicorn
 os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
 ensure_ray_initialized()
-
+backend_url = os.getenv("BACKEND_URL", "http://abstratray:8000")
 app = FastAPI()
 
 
@@ -128,6 +128,7 @@ async def prepare_evaluation(
             global intermediate_results
             intermediate_results = {
                 'model': model,
+                'network_name':network_name,
                 'image_tensor': image_tensor,
                 'zonotope_espilon_sparse_tensor': zonotope_espilon_sparse_tensor,
                 'num_worker': num_worker,
@@ -136,6 +137,7 @@ async def prepare_evaluation(
                 'unstack_network': unstack_network,
                 'add_symbol': add_symbol,
                 'renew_abstract_domain':relevance_dump,
+                'noise_level':noise
             }
 
             response = {
@@ -162,6 +164,8 @@ async def execute_evaluation():
         RAM = intermediate_results['RAM']
         unstack_network = intermediate_results['unstack_network']
         add_symbol = intermediate_results['add_symbol']
+        network_name = intermediate_results['network_name']
+        noise_level = intermediate_results['noise_level']
 
         abstract_domain = {
                     'zonotope' : zonotope_espilon_sparse_tensor,
@@ -177,8 +181,9 @@ async def execute_evaluation():
             num_workers=num_worker,
             available_RAM=RAM,
             device=torch.device(back_end),
-            add_symbol = add_symbol
-        )
+            add_symbol = add_symbol,
+            json_file_prefix= str(network_name),
+            noise_level = noise_level)
 
         for i in range(10):  
             if os.path.exists('interrupt_signal'):
@@ -209,4 +214,4 @@ async def interrupt_evaluation():
     return {"detail": "Evaluation interruption signal sent"}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="localhost", port=8000)

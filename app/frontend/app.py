@@ -7,7 +7,7 @@ from PIL import Image
 import os
 
 st.title("Model Evaluator")
-backend_url = os.getenv("BACKEND_URL", "http://abstratray:8000")
+backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 
 model_option = st.selectbox("Choose a model", ["Custom", "VGG16", "VGG19", "ResNet","SimpleCNN"])

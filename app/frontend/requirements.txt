@@ -13,7 +13,6 @@ pillow
 #Streamlit requirements
 
 fastapi
-pydantic<2.0.0
 python-multipart
 uvicorn
 requests

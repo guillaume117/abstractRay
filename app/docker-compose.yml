@@ -5,7 +5,7 @@ services:
       - "8000:8000"
     hostname: abstratray
     environment:
-      - BACKEND_URL=http://abstratray:8000 
+      - BACKEND_URL=http://localhost:8000 
   streamlit:
     image: "my-streamlit-app_fronted"
     ports:
@@ -13,4 +13,4 @@ services:
       
     hostname: streamlit
     environment:
-      - BACKEND_URL=http://abstratray:8000 
+      - BACKEND_URL=http://localhost:8000 
