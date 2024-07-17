@@ -28,10 +28,16 @@ RAM = st.number_input("Available RAM per worker", value=1.0)
 add_symbol = st.selectbox("Add symbol from trash",[True,False])
 relevance_dump = st.selectbox("Dump relevance policy",[False, True])
 resize_input = st.checkbox("Resize input image", value=True)
+
 if resize_input:
     resize_width = st.number_input("Resize width", min_value=1, value=224)
     resize_height = st.number_input("Resize height", min_value=1, value=224)
-
+box_input = st.selectbox('Select a box for noising',[False,True])
+if box_input:
+    box_x_min = st.number_input('X_min value for box')
+    box_x_max = st.number_input('X_max value for box')
+    box_y_min = st.number_input('Y_min value for box')
+    box_y_max = st.number_input('Y_max value for box')
 
 evaluation_status = st.empty()
 
@@ -47,16 +53,17 @@ def prepare_evaluation():
             network_name  = model_option.lower()
 
  
-        try:
-            num_symbol_value = int(num_symbol)
-        except ValueError:
-            num_symbol_value = str(num_symbol)
+    
 
         data = {
             'network_name': network_name ,
             'num_worker': num_worker,
             'back_end': back_end,
-            'num_symbol': num_symbol_value,
+            'box_input': box_input,
+            'box_x_min': box_x_min if box_input else None,
+            'box_x_max': box_x_max if box_input else None,
+            'box_y_min': box_y_min if box_input else None,
+            'box_y_max': box_y_max if box_input else None,
             'noise': noise,
             'RAM': RAM,
             'add_symbol': add_symbol,
@@ -96,9 +103,10 @@ def execute_evaluation():
         plot_results(result)
         
        
-        if num_symbol == 'Full':
+       
             
-            display_relevance_image(result, 0,noise)
+        display_relevance_image(result, 0,noise)
+        
     else:
         st.error(f"Error: {response.status_code} - {response.text}")
 

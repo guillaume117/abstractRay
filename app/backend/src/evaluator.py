@@ -25,10 +25,12 @@ class ModelEvaluator:
         self.timestart = time.time()
         self.noise_level = noise_level
         self.num_symbols = abstract_domain['zonotope']._nnz()
+        self.input_tensor_size_init = tuple(self.abstract_domain['center'].size())
 
     def evaluate_model(self):
         all_results = {
             "context": {
+                "model_name": self.json_file_prefix,
                 "num_workers": self.num_workers,
                 "available_RAM": self.available_RAM,
                 "device": str(self.device),
@@ -36,7 +38,9 @@ class ModelEvaluator:
                 "renew_abstract_domain": self.renew_abstract_domain,
                 "verbose": self.verbose,
                 "noise_level": self.noise_level,
-                "num_symbols": self.num_symbols
+                "num_symbols": self.num_symbols,
+                "input_tensor_size": self.input_tensor_size_init,
+                "process_ended":False,
             },
             "layers": []
         }
@@ -77,29 +81,34 @@ class ModelEvaluator:
 
             layer_evaluation = {
                 "layer_name": self.name,
+                "layer_details" : self.details,
                 "input_tensor_size": input_tensor_size,
                 "num_symbols": num_symbols,
                 "nnz": nnz,
-                "memory_gain_percentage": memory_gain_percentage,
+                "memory_gain_percentage": float(memory_gain_percentage),
                 "computation_time": computation_time,
-                "max_bounds":2*max(self.abstract_domain['sum'])
+                #"abstract_domain_center" : self.abstract_domain['center'].tolist(),
+                #"max_bounds":self.abstract_domain['sum'].tolist()
             }
 
             all_results["layers"].append(layer_evaluation)
 
-            self._save_results_to_json(all_results)
+            
 
             if self.renew_abstract_domain and self.abstract_domain['perfect_domain']:
                 new_symbs = 2 * self.abstract_domain['sum'].to_dense()
                 new_symbs_sparse = new_symbs.to_sparse_coo().coalesce()
                 self.abstract_domain['zonotope'] = ZonoSparseGeneration().zono_from_tensor(new_symbs_sparse).coalesce()
                 self.abstract_domain['trash'] = torch.zeros_like(new_symbs)
-
+            self._save_results_to_json(all_results)
+        all_results['context']['process_ended']=True
+        self._save_results_to_json(all_results)
         return self.abstract_domain
 
     def _save_results_to_json(self, all_results):
 
-        json_file = f'{self.json_file_prefix}_time_eval{self.timestart}.json'
+
+        json_file = f'../result/{self.json_file_prefix}_time_eval{self.timestart}.json'
         with open(json_file, 'w') as f:
             json.dump(all_results, f, indent=4, default=str)  # Utilisation de default=str pour sérialiser des objets non-standard
 

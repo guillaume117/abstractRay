@@ -5,7 +5,7 @@ sys.path.append('app/src')
 sys.path.append('./src')
 from util import sparse_tensor_stats, get_largest_tensor_size,sparse_dense_broadcast_mult, resize_sparse_coo_tensor
 from sparse_evaluation import SparseEvaluation  
-from zono_sparse_gen import ZonoSparseGeneration
+from zono_sparse_gen_2 import ZonoSparseGeneration
 
 
 
@@ -53,8 +53,8 @@ def static_process_linear_layer(abstract_domain,function_center,function_epsilon
         mask_epsilon = torch.ones_like(mask_epsilon)
         
         if  add_symbol==True and not torch.equal(trash, torch.zeros_like(trash)):
-            _, new_sparse = ZonoSparseGeneration(trash,from_trash=True,start_index=len_zono).total_zono()
-        
+            #_, new_sparse = ZonoSparseGeneration(trash,from_trash=True,start_index=len_zono).total_zono()
+            new_sparse = ZonoSparseGeneration().zono_from_tensor(trash,start_index=len_zono).coalesce()
             if new_sparse is not None:
                 print(f'new_sparse size {new_sparse.size()}')
                 evaluator_new_noise = SparseEvaluation(new_sparse,

@@ -13,7 +13,7 @@ import sys
 sys.path.append('app/backend/src')
 sys.path.append('./src')
 from util import sparse_tensor_stats, resize_sparse_coo_tensor,SimpleCNN,ensure_ray_initialized
-from zono_sparse_gen import ZonoSparseGeneration
+from zono_sparse_gen_2 import ZonoSparseGeneration
 from evaluator import ModelEvaluator
 from unstack_network import UnStackNetwork
 import io
@@ -78,13 +78,17 @@ async def prepare_evaluation(
     network_name : str = Form(...),
     num_worker: int = Form(...),
     back_end: str = Form(...),
-    num_symbol: str = Form(...),
     noise: float = Form(...),
     RAM: float = Form(...),
     resize_input: bool = Form(...),
     resize_width: int = Form(None),
     resize_height: int = Form(None),
-    add_symbol:bool = Form(...),
+    box_input : bool = Form(...),
+    box_x_min : int =Form(None),
+    box_x_max : int = Form(None),
+    box_y_min : int = Form(None),
+    box_y_max : int = Form(None),
+    add_symbol : bool = Form(...),
     relevance_dump : bool = Form(...)
 ):
     try:
@@ -110,16 +114,17 @@ async def prepare_evaluation(
                 output = model(image_tensor)
 
             # Générer le zonotope
-            _, zonotope_espilon_sparse_tensor = ZonoSparseGeneration(image_tensor, noise).total_zono()
-            messages.append(f"Zonotope generated successfully, dimensions: {zonotope_espilon_sparse_tensor.shape}")
-
-            if num_symbol != 'Full':
-                try:
-                    num_symbol = int(num_symbol)
-                    zonotope_espilon_sparse_tensor = resize_sparse_coo_tensor(zonotope_espilon_sparse_tensor, (num_symbol, *image_tensor.shape[1:]))
-                except ValueError:
-                    raise HTTPException(status_code=400, detail="Invalid value for num_symbol. It should be 'full' or an integer.")
-
+            if box_input == False:
+                zonotope_espilon_sparse_tensor = ZonoSparseGeneration().zono_from_noise_level_and_tensor(noise_level =noise, tensor =image_tensor)
+                messages.append(f"Zonotope generated successfully, dimensions: {zonotope_espilon_sparse_tensor.shape}")
+            else : 
+                zonotope_espilon_sparse_tensor = ZonoSparseGeneration().zono_from_input_noise_level_and_mask(tensor_input=image_tensor, 
+                                                                                                             x_min = box_x_min,
+                                                                                                             x_max = box_x_max,
+                                                                                                             y_min = box_y_min,
+                                                                                                             y_max = box_y_max, 
+                                                                                                             noise_level=noise)
+            
             # Exécuter UnStackNetwork
             unstack_network = UnStackNetwork(model, image_tensor.shape[1:])
             messages.append("UnStackNetwork executed successfully")
