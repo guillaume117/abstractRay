@@ -32,7 +32,7 @@ resize_input = st.checkbox("Resize input image", value=True)
 if resize_input:
     resize_width = st.number_input("Resize width", min_value=1, value=224)
     resize_height = st.number_input("Resize height", min_value=1, value=224)
-box_input = st.selectbox('Select a box for noising',[False,True])
+box_input = st.checkbox('Select a box for noising',value=False)
 if box_input:
     box_x_min = st.number_input('X_min value for box')
     box_x_max = st.number_input('X_max value for box')
@@ -106,7 +106,7 @@ def execute_evaluation():
        
             
         display_relevance_image(result, 0,noise)
-        
+
     else:
         st.error(f"Error: {response.status_code} - {response.text}")
 

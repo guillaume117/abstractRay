@@ -1,18 +1,9 @@
 import torch
 import torch.nn as nn
 import sys
-sys.path.append('app/src')
-sys.path.append('./src')
-from util import sparse_tensor_stats, get_largest_tensor_size,sparse_dense_broadcast_mult, resize_sparse_coo_tensor
-
-from process_abstract_maxpool2d_layer import process_max_pool2D
-from process_linear_layer import static_process_linear_layer
-from sparse_evaluation import SparseEvaluation  
-from zono_sparse_gen import ZonoSparseGeneration
-from abstract_relu import AbstractReLU
-from sparse_addition import SparseAddition
-from process_abstract_maxpool2d_layer import process_max_pool2D
-
+from app.backend.src.process_abstract_maxpool2d_layer import process_max_pool2D
+from app.backend.src.process_linear_layer import static_process_linear_layer
+from app.backend.src.abstract_relu import AbstractReLU
 
 def process_layer(abstract_domain, name, details, num_worker, available_ram, device, add_symbol):
     """

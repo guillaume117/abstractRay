@@ -10,16 +10,14 @@ import torchvision.models as models
 import ray
 import os
 import sys
-sys.path.append('app/backend/src')
-sys.path.append('./src')
-from util import sparse_tensor_stats, resize_sparse_coo_tensor,SimpleCNN,ensure_ray_initialized
-from zono_sparse_gen_2 import ZonoSparseGeneration
-from evaluator import ModelEvaluator
-from unstack_network import UnStackNetwork
+from app.backend.src.util import SimpleCNN,ensure_ray_initialized
+from app.backend.src.zono_sparse_gen import ZonoSparseGeneration
+from app.backend.src.evaluator import ModelEvaluator
+from app.backend.src.unstack_network import UnStackNetwork
 import io
 import uvicorn
 os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
-ensure_ray_initialized()
+
 backend_url = os.getenv("BACKEND_URL", "http://abstratray:8000")
 app = FastAPI()
 

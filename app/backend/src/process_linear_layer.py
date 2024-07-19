@@ -1,11 +1,8 @@
 import torch
 import torch.nn as nn
-import sys
-sys.path.append('app/src')
-sys.path.append('./src')
-from util import sparse_tensor_stats, get_largest_tensor_size,sparse_dense_broadcast_mult, resize_sparse_coo_tensor
-from sparse_evaluation import SparseEvaluation  
-from zono_sparse_gen_2 import ZonoSparseGeneration
+
+from app.backend.src.sparse_evaluation import SparseEvaluation  
+from app.backend.src.zono_sparse_gen import ZonoSparseGeneration
 
 
 

@@ -1,11 +1,8 @@
 import torch
 import torch.nn as nn
-import sys
-sys.path.append('app/src')
-sys.path.append('./src')
-from util import get_largest_tensor_size
-from process_linear_layer import static_process_linear_layer
-from abstract_relu import AbstractReLU
+from app.backend.src.util import get_largest_tensor_size
+from app.backend.src.process_linear_layer import static_process_linear_layer
+from app.backend.src.abstract_relu import AbstractReLU
 import copy
 
 
@@ -69,6 +66,29 @@ def abstract_substraction(abstract_domain_1,abstract_domain_2):
     abstract_domain_1['perfect_domain']=True
 
     return abstract_domain_1
+
+
+
+
+
+
+def resize_dim_1(abstract_domain_1,abstract_domain):
+    """
+    Resize the zonotope tensor within the abstract domain.
+    
+    Parameters:
+    abstract_domain_1 (dict): The abstract domain containing the zonotope_1 tensor.
+    abstract_domain (dict): The abstract domain containing the zonotope tensor.
+    
+    Returns:
+    dict: The updated abstract domain with the coalesced zonotope tensor.
+    """
+    dim_zono = abstract_domain_1['zonotope'].size(0)
+    zonotope_size = (dim_zono, *abstract_domain['zonotope'].size()[1:])
+    
+    abstract_domain['zonotope'] = torch.sparse_coo_tensor(abstract_domain['zonotope'].indices(),abstract_domain['zonotope'].values(), size=zonotope_size).coalesce()
+    
+    
 
 
 def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,device, add_symbol):
@@ -140,8 +160,8 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
                                                             available_ram,
                                                             device,
                                                             add_symbol)
-
-
+        
+        resize_dim_1(abstract_domain_1,abstract_domain)
         abstract_domain_2 = static_process_linear_layer(copy.deepcopy(abstract_domain),
                                                         conv_1,
                                                         conv_1,
@@ -153,8 +173,8 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
         
         
         abstract_domain_1 = abstract_addition(abstract_domain_1,abstract_domain_2)
-        del abstract_domain_2
 
+        
         abstract_domain_2= static_process_linear_layer(copy.deepcopy(abstract_domain),
                                                         conv_2,
                                                         conv_2,
@@ -163,6 +183,7 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
                                                         available_ram,
                                                         device,
                                                         add_symbol)
+        
         
   
         abstract_domain_2 = abstract_substraction(abstract_domain_2,abstract_domain_1)
@@ -178,6 +199,7 @@ def process_max_pool2D(abstract_domain, maxpool_layer,num_workers,available_ram,
                                                         available_ram,
                                                         device,
                                                         add_symbol)
+        resize_dim_1(abstract_domain_3,abstract_domain)
         
         abstract_domain_3 = abstract_addition(abstract_domain_1,abstract_domain_3)
         

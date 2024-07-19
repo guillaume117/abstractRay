@@ -1,14 +1,11 @@
 import torch
 import torch.nn as nn
-import sys
 import time
-import json
+from app.backend.src.zono_sparse_gen import ZonoSparseGeneration
+from app.backend.src.util import sparse_tensor_stats
+from app.backend.src.process_layer import process_layer
+from app.result.save_results_to_json import save_results_to_json
 
-sys.path.append('app/src')
-sys.path.append('./src')
-from zono_sparse_gen_2 import ZonoSparseGeneration
-from util import sparse_tensor_stats, get_largest_tensor_size, sparse_dense_broadcast_mult, resize_sparse_coo_tensor
-from process_layer import process_layer
 
 class ModelEvaluator:
 
@@ -100,18 +97,24 @@ class ModelEvaluator:
                 new_symbs_sparse = new_symbs.to_sparse_coo().coalesce()
                 self.abstract_domain['zonotope'] = ZonoSparseGeneration().zono_from_tensor(new_symbs_sparse).coalesce()
                 self.abstract_domain['trash'] = torch.zeros_like(new_symbs)
-            self._save_results_to_json(all_results)
+
+            save_results_to_json(self.timestart,self.json_file_prefix,all_results)
         all_results['context']['process_ended']=True
-        self._save_results_to_json(all_results)
+        save_results_to_json(self.timestart,self.json_file_prefix,all_results)
         return self.abstract_domain
-
+    """
     def _save_results_to_json(self, all_results):
+        path_script = os.path.abspath(__file__)
+        folder_script = os.path.dirname(path_script)
+        folder_result = os.path.join(folder_script,self.json_file_prefix)
+        if not os.path.exists(folder_result):
+            os.makedirs(folder_result)
 
-
-        json_file = f'../result/{self.json_file_prefix}_time_eval{self.timestart}.json'
+        json_file = f'{self.json_file_prefix}_time_eval_{self.timestart}.json'
+        json_file = os.path.join(folder_result,json_file)
         with open(json_file, 'w') as f:
             json.dump(all_results, f, indent=4, default=str)  # Utilisation de default=str pour sérialiser des objets non-standard
-
+        """
 # Utilisation de la classe ModelEvaluator
 # unstacked_model et abstract_domain doivent être définis avant cette utilisation
 # evaluator = ModelEvaluator(unstacked_model, abstract_domain, verbose=True)

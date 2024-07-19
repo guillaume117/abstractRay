@@ -137,21 +137,6 @@ def sparse_dense_broadcast_mult(sparse_tensor, multiplicative_tensor):
 
 
 
-indices = torch.LongTensor([[0, 0, 1, 1, 2, 2, 3, 3],
-                            [0, 1, 0, 1, 0, 1, 0, 1],
-                            [0, 1, 2, 3, 4, 0, 1, 2],
-                            [0, 1, 2, 3, 4, 0, 1, 2]])
-values = torch.FloatTensor([1, 2, 3, 4, 5, 6, 7, 8])
-sparse_size = (4, 5, 5, 5)
-sparse_tensor = torch.sparse_coo_tensor(indices, values, sparse_size)
-
-# Définir un tenseur multiplicatif de dimension [1, C, H, W]
-multiplicative_tensor = torch.randn(1, 5, 5, 5)
-
-# Appliquer la fonction
-new_sparse_tensor = sparse_dense_broadcast_mult(sparse_tensor, multiplicative_tensor)
-
-print(new_sparse_tensor)
 
 
 

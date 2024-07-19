@@ -5,14 +5,8 @@ from typing import Callable
 import torch.nn as nn
 import ray
 from tqdm import tqdm
-import sys 
-sys.path.append('cpuconv2D')
-sys.path.append('src/cpuconv2D')
-sys.path.append('app/src/cpuconv2D')
-sys.path.append('./app')
-sys.path.append('./app/backend')
-sys.path.append('./app/backend/src')
-sys.path.append('./app/backend/src/cpuconv2D')
+
+
 #import sparse_conv2d
 import os
 os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
