@@ -18,6 +18,19 @@ os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
 
 
 def load_model(network_name,network_file=None):
+    """
+    Load a model based on the provided network name and file.
+
+    Args:
+        network_name (str): The name of the network to load.
+        network_file (str, optional): The path to the network file (.onnx, .pt, .pth).
+
+    Returns:
+        torch.nn.Module: The loaded PyTorch model.
+
+    Raises:
+        ValueError: If the network model format or name is unsupported.
+    """
     if network_name == "custom":
         if network_file.endswith('.onnx'):
             onnx_model = onnx.load_model(network_file)
@@ -48,6 +61,18 @@ def load_model(network_name,network_file=None):
         raise ValueError("Unsupported model name.")
 
 def validate_and_transform_image(image_path, resize_input=False, resize_width=None, resize_height=None):
+    """
+    Validate and transform the input image.
+
+    Args:
+        image_path (str): The path to the input image.
+        resize_input (bool, optional): Whether to resize the input image. Defaults to False.
+        resize_width (int, optional): The width to resize the image to. Required if resize_input is True.
+        resize_height (int, optional): The height to resize the image to. Required if resize_input is True.
+
+    Returns:
+        tuple: A tuple containing the transformed image tensor and the original image size.
+    """
     image = Image.open(image_path)
     if resize_input:
         pass
@@ -57,15 +82,23 @@ def validate_and_transform_image(image_path, resize_input=False, resize_width=No
     return transformed_image, image.size
 
 def main(args):
+    """
+    The main function to run the model evaluation.
+
+    Args:
+        args (argparse.Namespace): The command line arguments.
+
+    Raises:
+        ValueError: If the image processing fails.
+    """
     try:
         messages = []
 
-        # Charger le modèle
+      
         model = load_model(args.network_name, args.network_file)
         messages.append("load_model ok")
         print(messages)
 
-        # Charger et transformer l'image
         image_tensor, image_size = validate_and_transform_image(args.input_image, args.resize_input, args.resize_width, args.resize_height)
         messages.append(f"Image loaded successfully, size: {image_size[0]}x{image_size[1]} pixels")
         print(messages)
@@ -89,7 +122,7 @@ def main(args):
                     noise_level=args.noise
                 )
 
-            # Exécuter UnStackNetwork
+      
             unstack_network = UnStackNetwork(model, image_tensor.shape[1:])
             messages.append("UnStackNetwork executed successfully")
 

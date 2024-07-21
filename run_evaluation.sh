@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # Paramètres fixes
+export PYTHONPATH=$PYTHONPATH:"./app"
 NETWORK_FILE=".app/src/CNN/simple_cnn_fashionmnist.pth"
 INPUT_IMAGE="./test.jpeg"
 NETWORK_NAME="simplecnn"
 NUM_WORKER=0
-BACK_END="cuda"
+BACK_END="cpu"
 RAM=8.0
 RESIZE_INPUT="False"
 BOX_INPUT="False"
@@ -13,8 +14,9 @@ ADD_SYMBOL="True"
 RELEVANCE_DUMP="False"
 
 
-NOISE=0.0001
-while (( $(echo "$NOISE <= 0.05" | bc -l) )); do
+NOISE=0.0005
+
+while (( $(echo "$NOISE <= 0.001" | bc -l) )); do
     python app/main.py \
         --network_file $NETWORK_FILE \
         --input_image $INPUT_IMAGE \

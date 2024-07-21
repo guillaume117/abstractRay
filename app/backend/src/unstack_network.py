@@ -4,7 +4,25 @@ import torchvision.models as models
 import copy
 
 class UnStackNetwork:
+    """
+    Unstack a PyTorch model and store information about each layer.
+
+    Attributes:
+        model (nn.Module): The PyTorch model to unstack.
+        input_dim (tuple): The dimensions of the input tensor.
+        output (dict): Dictionary to store information about each layer.
+        threshold (float): Threshold for comparing outputs.
+    """
+
     def __init__(self, model, input_dim, threshold=1e-5):
+        """
+        Initialize the UnStackNetwork class.
+
+        Args:
+            model (nn.Module): The PyTorch model to unstack.
+            input_dim (tuple): The dimensions of the input tensor.
+            threshold (float, optional): Threshold for comparing outputs. Defaults to 1e-5.
+        """
         self.model = model
         self.input_dim = input_dim
         self.output = {}
@@ -12,6 +30,9 @@ class UnStackNetwork:
         self.unstack_network()
 
     def unstack_network(self):
+        """
+        Unstack the network by passing a random tensor through the model and processing each layer.
+        """
         with torch.no_grad():
             x = torch.randn(1, *self.input_dim)
 
@@ -22,10 +43,20 @@ class UnStackNetwork:
                 else:
                     x = self.process_layer(name, module, x)
 
-            
             x = self.add_identity_layer(x)
 
     def process_layer(self, name, layer, x):
+        """
+        Process a single layer of the network.
+
+        Args:
+            name (str): The name of the layer.
+            layer (nn.Module): The layer to process.
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor after processing the layer.
+        """
         with torch.no_grad():
             original_output = x.clone()
             if isinstance(layer, nn.Linear):
@@ -50,24 +81,31 @@ class UnStackNetwork:
                 self.compare_outputs(layer(original_output), x, name)
             else:
                 if hasattr(layer, 'forward'):
-                 
-             
                     if layer is not None and not 'Module()' and not 'OnnxDropoutDynamic()':
                         x = layer(x)
                         print(f'layer {name} passed')
                         self.compare_outputs(layer(original_output), x, name)
-                    else : pass 
+                    else:
+                        pass
                 else:
                     print(f"Layer {name} not processed")
                     self.compare_outputs(original_output, x, name)
             if isinstance(x, tuple):
                 x = x[0]
-
-            
-
             return x
 
     def process_linear_layer(self, name, layer, x):
+        """
+        Process a linear layer of the network.
+
+        Args:
+            name (str): The name of the layer.
+            layer (nn.Module): The linear layer to process.
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor after processing the layer.
+        """
         with torch.no_grad():
             self.output[name] = {
                 'type': type(layer),
@@ -79,8 +117,19 @@ class UnStackNetwork:
             return layer(x)
 
     def process_flatten(self, name, layer, x):
+        """
+        Process a flatten layer of the network.
+
+        Args:
+            name (str): The name of the layer.
+            layer (nn.Module): The flatten layer to process.
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor after processing the layer.
+        """
         with torch.no_grad():
-            flattened_x = layer(x)  # Apply the flatten layer to get the output dimensions
+            flattened_x = layer(x)
             self.output[f'{name}_flatten'] = {
                 'type': type(layer),
                 'original': layer,
@@ -91,6 +140,17 @@ class UnStackNetwork:
             return flattened_x
 
     def process_conv_layer(self, name, layer, x):
+        """
+        Process a convolutional layer of the network.
+
+        Args:
+            name (str): The name of the layer.
+            layer (nn.Module): The convolutional layer to process.
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor after processing the layer.
+        """
         with torch.no_grad():
             self.output[name] = {
                 'type': type(layer),
@@ -100,8 +160,19 @@ class UnStackNetwork:
                 'output_dim': self.compute_output_dim(layer, x)
             }
             return layer(x)
-    
+
     def process_avgpool_layer(self, name, layer, x):
+        """
+        Process an adaptive average pooling layer of the network.
+
+        Args:
+            name (str): The name of the layer.
+            layer (nn.Module): The adaptive average pooling layer to process.
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor after processing the layer.
+        """
         with torch.no_grad():
             self.output[name] = {
                 'type': type(layer),
@@ -113,6 +184,17 @@ class UnStackNetwork:
             return layer(x)
 
     def process_activation_layer(self, name, layer, x):
+        """
+        Process an activation layer of the network.
+
+        Args:
+            name (str): The name of the layer.
+            layer (nn.Module): The activation layer to process.
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor after processing the layer.
+        """
         with torch.no_grad():
             self.output[name] = {
                 'activation': layer.__class__.__name__,
@@ -121,12 +203,32 @@ class UnStackNetwork:
             return layer(x)
 
     def process_sequential(self, name, layer, x):
+        """
+        Process a sequential container of the network.
+
+        Args:
+            name (str): The name of the layer.
+            layer (nn.Sequential): The sequential container to process.
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor after processing the layer.
+        """
         with torch.no_grad():
             for sub_name, sub_module in layer.named_children():
                 x = self.process_layer(f"{name}.{sub_name}", sub_module, x)
             return x
 
     def add_identity_layer(self, x):
+        """
+        Add an identity layer to the network.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor after adding the identity layer.
+        """
         with torch.no_grad():
             identity_layer = nn.Identity()
             self.output['identity_layer'] = {
@@ -139,6 +241,15 @@ class UnStackNetwork:
             return identity_layer(x)
 
     def copy_with_zero_bias(self, layer):
+        """
+        Create a copy of a layer with zeroed biases.
+
+        Args:
+            layer (nn.Module): The layer to copy.
+
+        Returns:
+            nn.Module: The copied layer with zeroed biases.
+        """
         with torch.no_grad():
             new_layer = copy.deepcopy(layer)
             if isinstance(new_layer, (nn.Linear, nn.Conv2d)):
@@ -152,6 +263,15 @@ class UnStackNetwork:
             return new_layer
 
     def copy_with_abs_weights(self, layer):
+        """
+        Create a copy of a layer with absolute weights.
+
+        Args:
+            layer (nn.Module): The layer to copy.
+
+        Returns:
+            nn.Module: The copied layer with absolute weights.
+        """
         with torch.no_grad():
             new_layer = copy.deepcopy(layer)
             if isinstance(new_layer, (nn.Linear, nn.Conv2d)):
@@ -167,11 +287,32 @@ class UnStackNetwork:
             return new_layer
 
     def compute_output_dim(self, layer, x):
+        """
+        Compute the output dimensions of a layer.
+
+        Args:
+            layer (nn.Module): The layer for which to compute output dimensions.
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Size: The output dimensions of the layer.
+        """
         with torch.no_grad():
-            out = layer(x) if layer is not None else x  
+            out = layer(x) if layer is not None else x
             return out.shape
 
     def compare_outputs(self, original_output, new_output, layer_name):
+        """
+        Compare the outputs of the original and modified layers.
+
+        Args:
+            original_output (torch.Tensor): The output of the original layer.
+            new_output (torch.Tensor): The output of the modified layer.
+            layer_name (str): The name of the layer being compared.
+
+        Raises:
+            ValueError: If the difference between the original and new output exceeds the threshold.
+        """
         original_output_flat = original_output.view(-1)
         new_output_flat = new_output.view(-1)
         min_length = min(len(original_output_flat), len(new_output_flat))
@@ -179,11 +320,3 @@ class UnStackNetwork:
         if difference > self.threshold:
             raise ValueError(f"Difference between original and new output is too high after layer {layer_name}: {difference}")
         print(f"Output comparison after layer {layer_name} passed")
-
-"""
-model = models.resnet18(pretrained=False)
-model.eval()
-input_dim = (3, 224, 224) 
-unstacked_network = UnStackNetwork(model, input_dim)
-print(unstacked_network.output)
-"""
