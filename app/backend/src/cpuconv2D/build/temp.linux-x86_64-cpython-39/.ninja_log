@@ -1,0 +1,26 @@
+# ninja log v5
+0	9592	1720599670326136987	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+41	10511	1720600270293604446	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	10043	1720600568154826004	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+30	10631	1720601366329399740	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	9896	1720601497459772505	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	9790	1720601721656634685	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	9882	1720601857654473598	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	9860	1720601910710251492	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	9703	1720602386863148761	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+8	9725	1720602433694316888	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	10158	1720602503571029191	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	9901	1720603568922280960	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+6	10141	1720603698571242822	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	10012	1720603836628716731	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+6	10040	1720603946284201874	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	9772	1720603962137281565	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	10061	1720611155364178363	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	10109	1720611187166343325	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	10148	1720611274268269427	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	10080	1720611309598671874	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	9885	1720612060741642388	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+7	9752	1720612748728250770	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d.o	b25a5d6a2c26853
+3	10650	1720626555586416758	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d_2.o	4dac03ede262a9d5
+7	10312	1720629117263700069	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d_2.o	4dac03ede262a9d5
+7	9940	1720686070250120764	/home/guillaume/Documents/AbstratRay/app/backend/src/cpuconv2D/build/temp.linux-x86_64-cpython-39/sparse_conv2d_2.o	c74022cc6e927fc9

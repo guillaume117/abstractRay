@@ -1,0 +1,4 @@
+# ninja log v5
+0	14996	1720645097224529139	/Users/guillaumeberthelot/SDD/abstractRay/app/backend/src/cpuconv2D/build/temp.macosx-10.9-x86_64-cpython-311/sparse_conv2d.o	9f4424c4f257b5c8
+0	15545	1720646096696299426	/Users/guillaumeberthelot/SDD/abstractRay/app/backend/src/cpuconv2D/build/temp.macosx-10.9-x86_64-cpython-311/mpsconv2D.o	3dc16ecd8f1acee4
+11	15147	1720646358340318439	/Users/guillaumeberthelot/SDD/abstractRay/app/backend/src/cpuconv2D/build/temp.macosx-10.9-x86_64-cpython-311/sparse_conv2d.o	18317a63bc2d6ab1

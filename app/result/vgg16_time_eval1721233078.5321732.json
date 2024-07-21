@@ -1,0 +1,785 @@
+{
+    "context": {
+        "model_name": "vgg16",
+        "num_workers": 0,
+        "available_RAM": 5.0,
+        "device": "cpu",
+        "add_symbol": true,
+        "renew_abstract_domain": false,
+        "verbose": false,
+        "noise_level": 1e-05,
+        "num_symbols": 300
+    },
+    "layers": [
+        {
+            "layer_name": "features.0",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.0": "Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.0": "Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    64,
+                    100,
+                    100
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                64,
+                100,
+                100
+            ],
+            "num_symbols": 300,
+            "nnz": 172800,
+            "memory_gain_percentage": 99.19000244140625,
+            "computation_time": 0.22605443000793457
+        },
+        {
+            "layer_name": "features.1",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                64,
+                100,
+                100
+            ],
+            "num_symbols": 300,
+            "nnz": 172800,
+            "memory_gain_percentage": 99.19000244140625,
+            "computation_time": 0.006770610809326172
+        },
+        {
+            "layer_name": "features.2",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.2": "Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.2": "Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    64,
+                    100,
+                    100
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                64,
+                100,
+                100
+            ],
+            "num_symbols": 300,
+            "nnz": 480000,
+            "memory_gain_percentage": 97.75,
+            "computation_time": 0.7600317001342773
+        },
+        {
+            "layer_name": "features.3",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                64,
+                100,
+                100
+            ],
+            "num_symbols": 300,
+            "nnz": 480000,
+            "memory_gain_percentage": 97.75,
+            "computation_time": 0.005724668502807617
+        },
+        {
+            "layer_name": "features.4",
+            "layer_details": {
+                "activation": "MaxPool2d",
+                "activation_function": "MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)"
+            },
+            "input_tensor_size": [
+                1,
+                64,
+                50,
+                50
+            ],
+            "num_symbols": 316,
+            "nnz": 84590,
+            "memory_gain_percentage": 98.4942398071289,
+            "computation_time": 1.8903000354766846
+        },
+        {
+            "layer_name": "features.5",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.5": "Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.5": "Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    128,
+                    50,
+                    50
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                128,
+                50,
+                50
+            ],
+            "num_symbols": 316,
+            "nnz": 960000,
+            "memory_gain_percentage": 91.45569610595703,
+            "computation_time": 0.3927335739135742
+        },
+        {
+            "layer_name": "features.6",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                128,
+                50,
+                50
+            ],
+            "num_symbols": 316,
+            "nnz": 960000,
+            "memory_gain_percentage": 91.45569610595703,
+            "computation_time": 0.0031883716583251953
+        },
+        {
+            "layer_name": "features.7",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.7": "Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.7": "Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    128,
+                    50,
+                    50
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                128,
+                50,
+                50
+            ],
+            "num_symbols": 318,
+            "nnz": 1883904,
+            "memory_gain_percentage": 83.3381118774414,
+            "computation_time": 1.3692870140075684
+        },
+        {
+            "layer_name": "features.8",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                128,
+                50,
+                50
+            ],
+            "num_symbols": 318,
+            "nnz": 1883904,
+            "memory_gain_percentage": 83.3381118774414,
+            "computation_time": 0.0025942325592041016
+        },
+        {
+            "layer_name": "features.9",
+            "layer_details": {
+                "activation": "MaxPool2d",
+                "activation_function": "MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)"
+            },
+            "input_tensor_size": [
+                1,
+                128,
+                25,
+                25
+            ],
+            "num_symbols": 323,
+            "nnz": 268167,
+            "memory_gain_percentage": 90.6598129272461,
+            "computation_time": 1.3258907794952393
+        },
+        {
+            "layer_name": "features.10",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.10": "Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.10": "Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    256,
+                    25,
+                    25
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                256,
+                25,
+                25
+            ],
+            "num_symbols": 323,
+            "nnz": 2764800,
+            "memory_gain_percentage": 51.85139083862305,
+            "computation_time": 0.5399596691131592
+        },
+        {
+            "layer_name": "features.11",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                256,
+                25,
+                25
+            ],
+            "num_symbols": 323,
+            "nnz": 2764800,
+            "memory_gain_percentage": 51.85139083862305,
+            "computation_time": 0.0019314289093017578
+        },
+        {
+            "layer_name": "features.12",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.12": "Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.12": "Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    256,
+                    25,
+                    25
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                256,
+                25,
+                25
+            ],
+            "num_symbols": 323,
+            "nnz": 4915200,
+            "memory_gain_percentage": 14.402477264404297,
+            "computation_time": 1.0301051139831543
+        },
+        {
+            "layer_name": "features.13",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                256,
+                25,
+                25
+            ],
+            "num_symbols": 323,
+            "nnz": 4915200,
+            "memory_gain_percentage": 14.402477264404297,
+            "computation_time": 0.0023696422576904297
+        },
+        {
+            "layer_name": "features.14",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.14": "Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.14": "Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    256,
+                    25,
+                    25
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                256,
+                25,
+                25
+            ],
+            "num_symbols": 324,
+            "nnz": 7682304,
+            "memory_gain_percentage": -33.37333297729492,
+            "computation_time": 2.1958813667297363
+        },
+        {
+            "layer_name": "features.15",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                256,
+                25,
+                25
+            ],
+            "num_symbols": 324,
+            "nnz": 7682304,
+            "memory_gain_percentage": -33.37333297729492,
+            "computation_time": 0.0016133785247802734
+        },
+        {
+            "layer_name": "features.16",
+            "layer_details": {
+                "activation": "MaxPool2d",
+                "activation_function": "MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)"
+            },
+            "input_tensor_size": [
+                1,
+                256,
+                12,
+                12
+            ],
+            "num_symbols": 326,
+            "nnz": 740690,
+            "memory_gain_percentage": 44.529903411865234,
+            "computation_time": 1.5025060176849365
+        },
+        {
+            "layer_name": "features.17",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.17": "Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.17": "Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    512,
+                    12,
+                    12
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                12,
+                12
+            ],
+            "num_symbols": 326,
+            "nnz": 8411136,
+            "memory_gain_percentage": -214.95399475097656,
+            "computation_time": 0.9344878196716309
+        },
+        {
+            "layer_name": "features.18",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                12,
+                12
+            ],
+            "num_symbols": 326,
+            "nnz": 8411136,
+            "memory_gain_percentage": -214.95399475097656,
+            "computation_time": 0.0016913414001464844
+        },
+        {
+            "layer_name": "features.19",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.19": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.19": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    512,
+                    12,
+                    12
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                12,
+                12
+            ],
+            "num_symbols": 326,
+            "nnz": 13572096,
+            "memory_gain_percentage": -408.20550537109375,
+            "computation_time": 1.915238380432129
+        },
+        {
+            "layer_name": "features.20",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                12,
+                12
+            ],
+            "num_symbols": 326,
+            "nnz": 13572096,
+            "memory_gain_percentage": -408.20550537109375,
+            "computation_time": 0.0018320083618164062
+        },
+        {
+            "layer_name": "features.21",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.21": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.21": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    512,
+                    12,
+                    12
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                12,
+                12
+            ],
+            "num_symbols": 327,
+            "nnz": 17920512,
+            "memory_gain_percentage": -568.9793701171875,
+            "computation_time": 3.8871490955352783
+        },
+        {
+            "layer_name": "features.22",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                12,
+                12
+            ],
+            "num_symbols": 327,
+            "nnz": 17920512,
+            "memory_gain_percentage": -568.9793701171875,
+            "computation_time": 0.0012836456298828125
+        },
+        {
+            "layer_name": "features.23",
+            "layer_details": {
+                "activation": "MaxPool2d",
+                "activation_function": "MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)"
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                6,
+                6
+            ],
+            "num_symbols": 328,
+            "nnz": 644569,
+            "memory_gain_percentage": 4.045439720153809,
+            "computation_time": 1.6530096530914307
+        },
+        {
+            "layer_name": "features.24",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.24": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.24": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    512,
+                    6,
+                    6
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                6,
+                6
+            ],
+            "num_symbols": 328,
+            "nnz": 5529600,
+            "memory_gain_percentage": -723.1707153320312,
+            "computation_time": 0.6191785335540771
+        },
+        {
+            "layer_name": "features.25",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                6,
+                6
+            ],
+            "num_symbols": 328,
+            "nnz": 5529600,
+            "memory_gain_percentage": -723.1707153320312,
+            "computation_time": 0.0015153884887695312
+        },
+        {
+            "layer_name": "features.26",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.26": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.26": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    512,
+                    6,
+                    6
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                6,
+                6
+            ],
+            "num_symbols": 329,
+            "nnz": 5534208,
+            "memory_gain_percentage": -721.3526000976562,
+            "computation_time": 1.294205904006958
+        },
+        {
+            "layer_name": "features.27",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                6,
+                6
+            ],
+            "num_symbols": 329,
+            "nnz": 5534208,
+            "memory_gain_percentage": -721.3526000976562,
+            "computation_time": 0.0009009838104248047
+        },
+        {
+            "layer_name": "features.28",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.conv.Conv2d'>",
+                "original": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "epsilon_features.28": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "noise_features.28": "Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+                "output_dim": [
+                    1,
+                    512,
+                    6,
+                    6
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                6,
+                6
+            ],
+            "num_symbols": 329,
+            "nnz": 5529600,
+            "memory_gain_percentage": -720.668701171875,
+            "computation_time": 0.8657355308532715
+        },
+        {
+            "layer_name": "features.29",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                6,
+                6
+            ],
+            "num_symbols": 329,
+            "nnz": 5529600,
+            "memory_gain_percentage": -720.668701171875,
+            "computation_time": 0.0006892681121826172
+        },
+        {
+            "layer_name": "features.30",
+            "layer_details": {
+                "activation": "MaxPool2d",
+                "activation_function": "MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)"
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                3,
+                3
+            ],
+            "num_symbols": 330,
+            "nnz": 238801,
+            "memory_gain_percentage": -41.335819244384766,
+            "computation_time": 0.46988940238952637
+        },
+        {
+            "layer_name": "avgpool",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.pooling.AdaptiveAvgPool2d'>",
+                "original": "AdaptiveAvgPool2d(output_size=(7, 7))",
+                "epsilon_avgpool": "AdaptiveAvgPool2d(output_size=(7, 7))",
+                "noise_avgpool": "AdaptiveAvgPool2d(output_size=(7, 7))",
+                "output_dim": [
+                    1,
+                    512,
+                    7,
+                    7
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                512,
+                7,
+                7
+            ],
+            "num_symbols": 330,
+            "nnz": 1696500,
+            "memory_gain_percentage": -84.42355346679688,
+            "computation_time": 0.12494897842407227
+        },
+        {
+            "layer_name": "classifier.0",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.container.Sequential'>",
+                "original": "Sequential(\n  (0): Flatten(start_dim=1, end_dim=-1)\n  (1): Linear(in_features=25088, out_features=4096, bias=True)\n)",
+                "epsilon_classifier.0": "Sequential(\n  (0): Flatten(start_dim=1, end_dim=-1)\n  (1): Linear(in_features=25088, out_features=4096, bias=True)\n)",
+                "noise_classifier.0": "Sequential(\n  (0): Flatten(start_dim=1, end_dim=-1)\n  (1): Linear(in_features=25088, out_features=4096, bias=True)\n)",
+                "output_dim": [
+                    1,
+                    4096
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                4096
+            ],
+            "num_symbols": 330,
+            "nnz": 1228800,
+            "memory_gain_percentage": -354.5454406738281,
+            "computation_time": 0.2771420478820801
+        },
+        {
+            "layer_name": "classifier.1",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                4096
+            ],
+            "num_symbols": 330,
+            "nnz": 1228800,
+            "memory_gain_percentage": -354.5454406738281,
+            "computation_time": 0.00042819976806640625
+        },
+        {
+            "layer_name": "classifier.3",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.container.Sequential'>",
+                "original": "Sequential(\n  (0): Flatten(start_dim=1, end_dim=-1)\n  (1): Linear(in_features=4096, out_features=4096, bias=True)\n)",
+                "epsilon_classifier.3": "Sequential(\n  (0): Flatten(start_dim=1, end_dim=-1)\n  (1): Linear(in_features=4096, out_features=4096, bias=True)\n)",
+                "noise_classifier.3": "Sequential(\n  (0): Flatten(start_dim=1, end_dim=-1)\n  (1): Linear(in_features=4096, out_features=4096, bias=True)\n)",
+                "output_dim": [
+                    1,
+                    4096
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                4096
+            ],
+            "num_symbols": 330,
+            "nnz": 1228800,
+            "memory_gain_percentage": -354.5454406738281,
+            "computation_time": 0.12162470817565918
+        },
+        {
+            "layer_name": "classifier.4",
+            "layer_details": {
+                "activation": "ReLU",
+                "activation_function": "ReLU(inplace=True)"
+            },
+            "input_tensor_size": [
+                1,
+                4096
+            ],
+            "num_symbols": 330,
+            "nnz": 1228800,
+            "memory_gain_percentage": -354.5454406738281,
+            "computation_time": 0.00039124488830566406
+        },
+        {
+            "layer_name": "classifier.6",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.container.Sequential'>",
+                "original": "Sequential(\n  (0): Flatten(start_dim=1, end_dim=-1)\n  (1): Linear(in_features=4096, out_features=1000, bias=True)\n)",
+                "epsilon_classifier.6": "Sequential(\n  (0): Flatten(start_dim=1, end_dim=-1)\n  (1): Linear(in_features=4096, out_features=1000, bias=True)\n)",
+                "noise_classifier.6": "Sequential(\n  (0): Flatten(start_dim=1, end_dim=-1)\n  (1): Linear(in_features=4096, out_features=1000, bias=True)\n)",
+                "output_dim": [
+                    1,
+                    1000
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                1000
+            ],
+            "num_symbols": 330,
+            "nnz": 300000,
+            "memory_gain_percentage": -354.5454406738281,
+            "computation_time": 0.051071882247924805
+        },
+        {
+            "layer_name": "identity_layer",
+            "layer_details": {
+                "type": "<class 'torch.nn.modules.linear.Identity'>",
+                "original": "Identity()",
+                "epsilon_identity_layer": "Identity()",
+                "noise_identity_layer": "Identity()",
+                "output_dim": [
+                    1,
+                    1000
+                ]
+            },
+            "input_tensor_size": [
+                1,
+                1000
+            ],
+            "num_symbols": 330,
+            "nnz": 300000,
+            "memory_gain_percentage": -354.5454406738281,
+            "computation_time": 0.017708539962768555
+        }
+    ]
+}
