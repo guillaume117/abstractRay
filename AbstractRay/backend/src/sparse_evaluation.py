@@ -97,12 +97,10 @@ class SparseWorker:
                     if i % 10 == 0:
                         print(f"Worker {self.worker_start_index // self.dense_shape[0]} progress: {progress:.2%}")
 
-            if global_storage['indices']:
-                global_indices = torch.cat(global_storage['indices'], dim=1)
-                global_values = torch.cat(global_storage['values'], dim=0)
-            else:
-                global_indices = torch.empty((2, 0), dtype=dtyped)
-                global_values = torch.empty((0,), dtype=torch.float32)
+            
+            global_indices = torch.cat(global_storage['indices'], dim=1)
+            global_values = torch.cat(global_storage['values'], dim=0)
+        
 
         return global_indices, global_values
 
@@ -204,12 +202,10 @@ class SparseEvaluation:
                 global_indices.append(add_indices)
                 global_values.append(func_values)
 
-            if global_indices:
-                global_indices = torch.cat(global_indices, dim=1)
-                global_values = torch.cat(global_values, dim=0)
-            else:
-                global_indices = torch.empty((2, 0), dtype=dtyped)
-                global_values = torch.empty((0,), dtype=torch.float32)
+           
+            global_indices = torch.cat(global_indices, dim=1)
+            global_values = torch.cat(global_values, dim=0)
+   
 
             global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=self.output_size).coalesce().to('cpu')
 

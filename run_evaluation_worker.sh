@@ -16,7 +16,7 @@ RELEVANCE_DUMP="False"
 
 NOISE=0.00001
 
-for NUM_WORKER in {1..10}; do
+for NUM_WORKER in {2..1}; do
     python ./AbstractRay/main.py \
         --network_file $NETWORK_FILE \
         --input_image $INPUT_IMAGE \
@@ -30,5 +30,5 @@ for NUM_WORKER in {1..10}; do
         --resize_height $RESISE_HEIGHT\
         --box_input $BOX_INPUT \
         --add_symbol $ADD_SYMBOL \
-        --relevance_dump $RELEVANCE_DUMP\
+        --relevance_dump $RELEVANCE_DUMP;
 done
