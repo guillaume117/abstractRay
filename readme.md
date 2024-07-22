@@ -1,8 +1,6 @@
-# Model Evaluator
-
+# AbstractRay
 ## Description
-
-Model Evaluator is a tool for evaluating machine learning models using various backends and configurations. It supports custom models as well as popular pre-trained models such as VGG16, VGG19, ResNet, and SimpleCNN. The tool provides features for loading models, processing input images, generating zonotopes, and performing evaluations.
+AbstractRay is a tool for evaluating machine learning models throught affine transformation using various backends and configurations. It supports custom models as well as popular pre-trained models such as VGG16, VGG19, ResNet, and SimpleCNN. The tool provides features for loading models, processing input images, generating zonotopes, and performing evaluations.
 
 ## Features
 
@@ -17,8 +15,8 @@ Model Evaluator is a tool for evaluating machine learning models using various b
 1. Clone the repository:
 
     ```sh
-    git clone https://github.com/yourusername/model-evaluator.git
-    cd model-evaluator
+    git clone https://gitlab/lan/guillaume/abstractray.git
+    cd abstractray
     ```
 
 2. Create a virtual environment and activate it:
@@ -70,12 +68,17 @@ You can run the model evaluator using the command line interface (CLI) or throug
 
 ### Streamlit Web Interface
 
+In the fronted folder
 1. **Run the Streamlit app:**
+
 
     ```sh
     streamlit run app.py
     ```
-
+In the backend folder
+    ```sh
+    python main_stream.py
+    ```
 2. **Open your browser and navigate to:**
 
     ```
