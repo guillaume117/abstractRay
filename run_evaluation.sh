@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Paramètres fixes
-export PYTHONPATH=$PYTHONPATH:"./AbstractRay"
+export PYTHONPATH=$PYTHONPATH:$(pwd)
 NETWORK_FILE="./AbstratRay/src/CNN/simple_cnn_fashionmnist.pth"
 INPUT_IMAGE="./cut_dog.jpeg"
 NETWORK_NAME="vgg16"

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Paramètres fixes
-export PYTHONPATH=$PYTHONPATH:"./AbstractRay"
+export PYTHONPATH=$PYTHONPATH:$(pwd)
 NETWORK_FILE="./AbstratRay/src/CNN/simple_cnn_fashionmnist.pth"
 INPUT_IMAGE="./cut_dog.jpeg"
 NETWORK_NAME="vgg16"
@@ -13,7 +13,6 @@ RESISE_HEIGHT=112
 BOX_INPUT="False"
 ADD_SYMBOL="True"
 RELEVANCE_DUMP="False"
-LAST_LAYER=4
 
 NOISE=0.00001
 
@@ -32,5 +31,4 @@ for NUM_WORKER in {1..10}; do
         --box_input $BOX_INPUT \
         --add_symbol $ADD_SYMBOL \
         --relevance_dump $RELEVANCE_DUMP\
-        --model_last_layer $LAST_LAYER
 done
