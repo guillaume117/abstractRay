@@ -1,5 +1,5 @@
 # An unique identifier for the head node and workers of this cluster.
-cluster_name: default
+cluster_name: AbstractRayCluster
 
 # The maximum number of workers nodes to launch in addition to the head
 # node.
@@ -9,7 +9,7 @@ max_workers: 10
 # E.g., if the task requires adding more nodes then autoscaler will gradually
 # scale up the cluster in chunks of upscaling_speed*currently_running_nodes.
 # This number should be > 0.
-upscaling_speed: 5g
+upscaling_speed: 5
 
 # This executes all commands on all nodes in the docker container,
 # and opens all the necessary ports to support the Ray cluster.
@@ -28,22 +28,22 @@ provider:
     type: gcp
     region: europe-west4
     availability_zone: europe-west4-a
-    project_id: gberthelot
+    project_id: hpcberthelot24
 
 auth:
     ssh_user: ubuntu
 
 available_node_types:
     ray_head_default:
-        resources: {"CPU": 8, "memory": 34359738368}
+        resources: {"CPU": 64, "memory": 257698037760}  # 64 CPUs and 256 GB of memory
         node_config:
-            machineType: n2-standard-8
+            machineType: n2-standard-64
             disks:
               - boot: true
                 autoDelete: true
                 type: PERSISTENT
                 initializeParams:
-                  diskSizeGb: 50
+                  diskSizeGb: 100
                   sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
             networkInterfaces:
               - network: global/networks/default
@@ -52,25 +52,25 @@ available_node_types:
                     type: ONE_TO_ONE_NAT
                     # To allow external HTTP(S) traffic to reach the instances.
                     natIP: # If you have a static IP, you can specify it here.
-    ray_worker_small:
-        min_workers: 2
-        max_workers: 9
-        resources: {"CPU": 8, "memory": 34359738368}
+    ray_worker_large:
+        min_workers: 1
+        max_workers: 10
+        resources: {"CPU": 64, "memory": 257698037760}  # 64 CPUs and 256 GB of memory
         node_config:
-            machineType: n2-standard-8
+            machineType: n2-standard-64
             disks:
               - boot: true
                 autoDelete: true
                 type: PERSISTENT
                 initializeParams:
-                  diskSizeGb: 50
+                  diskSizeGb: 100
                   sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
             scheduling:
               - preemptible: true
 
 head_node_type: ray_head_default
 file_mounts: {
-    "/home/ubuntu/app": "/home/guiberthelot/abstractRay/app"
+"/home/ubuntu/AbstractRay": "/home/guiberthelot/abstractRay"
 }
 
 
