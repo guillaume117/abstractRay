@@ -51,7 +51,7 @@ def load_model(network_name,network_file=None):
         return models.resnet18(pretrained=True).eval()
     elif network_name == "simplecnn":
         model = SimpleCNN()
-        model_weights_path = './app/backend/src/CNN/simple_cnn_fashionmnist.pth'
+        model_weights_path = './AbstractRay/backend/src/CNN/simple_cnn_fashionmnist.pth'
         model.load_state_dict(torch.load(model_weights_path))
         model.eval()
         return model

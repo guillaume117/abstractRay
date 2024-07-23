@@ -56,7 +56,6 @@ class UnStackNetwork:
                 else:
                     x = self.process_layer(name, module, x)
                 self.last_layer -=1
-                print(self.last_layer)
                 if self.last_layer ==0:
                     x = self.add_identity_layer(x)
                     return 
