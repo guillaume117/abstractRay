@@ -1,9 +1,9 @@
 #abstratray requirements
 
-torch
+torch==2.3.0
 torchvision
 numpy
-ray
+ray==2.24.0
 tqdm
 onnx
 onnx2torch

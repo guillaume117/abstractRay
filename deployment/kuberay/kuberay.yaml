@@ -70,7 +70,7 @@ available_node_types:
 
 head_node_type: ray_head_default
 file_mounts: {
-"/home/ubuntu/AbstractRay": "/home/guiberthelot/abstractRay"
+"/home/ubuntu/AbstractRay": "/home/guiberthelot/AbstractRay"
 }
 
 cluster_synced_files: []
