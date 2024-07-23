@@ -3,7 +3,7 @@ cluster_name: abstract-ray-cluster
 
 # The maximum number of workers nodes to launch in addition to the head
 # node
-max_workers: 5
+max_workers: 4
 
 # The autoscaler will scale up the cluster faster with higher upscaling speed.
 # E.g., if the task requires adding more nodes then autoscaler will gradually
@@ -53,8 +53,8 @@ available_node_types:
                     # To allow external HTTP(S) traffic to reach the instances.
                     natIP: # If you have a static IP, you can specify it here.
     ray_worker_large:
-        min_workers: 5
-        max_workers: 5
+        min_workers: 4
+        max_workers: 4
         resources: {"CPU": 32, "memory": 128849018880}  # 32 CPUs and 128 GB of memory
         node_config:
             machineType: n2-standard-32
@@ -97,7 +97,8 @@ worker_setup_commands:
   - pip install -r ../ubuntu/AbstractRay/AbstractRay/backend/requirements.txt
 
 head_start_ray_commands:
-    - export RAY_memory_usage_threshold=0.98
+    - export RAY_memory_usage_threshold=1
+    - export RAY_memory_monitor_refresh_ms=0
     - export NUMEXPR_MAX_THREADS=32
     - ray stop
     - >-
@@ -109,7 +110,8 @@ head_start_ray_commands:
       --dashboard-host=0.0.0.0
 
 worker_start_ray_commands:
-    - export RAY_memory_usage_threshold=0.98
+    - export RAY_memory_usage_threshold=1
+    - export RAY_memory_monitor_refresh_ms=0
     - export NUMEXPR_MAX_THREADS=32
     - ray stop
     - >-
