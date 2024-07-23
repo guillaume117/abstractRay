@@ -3,8 +3,8 @@
 # Paramètres fixes
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 NETWORK_FILE="./AbstratRay/src/CNN/simple_cnn_fashionmnist.pth"
-INPUT_IMAGE="./cut_dog.jpeg"
-NETWORK_NAME="vgg16"
+INPUT_IMAGE="./test.jpeg"
+NETWORK_NAME="simplecnn"
 BACK_END="cpu"
 RAM=64 
 RESIZE_INPUT="True"
