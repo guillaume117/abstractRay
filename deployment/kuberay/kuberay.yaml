@@ -84,33 +84,28 @@ rsync_exclude:
 rsync_filter:
     - ".gitignore"
 
-initialization_commands: []
+initialization_commands:
+  - sudo useradd -m ray
+  - echo 'ray ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/ray
 
 setup_commands: []
 
 head_setup_commands:
-  - pip install google-api-python-client==1.7.8
-  - pip install -r ../ubuntu/AbstractRay/AbstractRay/backend/requirements.txt
+  - sudo su - ray -c "pip install google-api-python-client==1.7.8"
+  - sudo su - ray -c "pip install -r /home/ubuntu/AbstractRay/AbstractRay/backend/requirements.txt"
 
 worker_setup_commands: 
-  - pip install google-api-python-client==1.7.8
-  - pip install -r ../ubuntu/AbstractRay/AbstractRay/backend/requirements.txt
+  - sudo su - ray -c "pip install google-api-python-client==1.7.8"
+  - sudo su - ray -c "pip install -r /home/ubuntu/AbstractRay/AbstractRay/backend/requirements.txt"
 
 head_start_ray_commands:
-    - export RAY_memory_usage_threshold=0.98
-    - ray stop
-    - >-
-      ray start
-      --head
-      --port=6379
-      --object-manager-port=8076
-      --autoscaling-config=~/ray_bootstrap_config.yaml
-      --dashboard-host=0.0.0.0
+    - sudo su - ray -c "export RAY_memory_usage_threshold=0.98"
+    - sudo su - ray -c "export NUMEXPR_MAX_THREADS=32"
+    - sudo su - ray -c "ray stop"
+    - sudo su - ray -c "ray start --head --port=6379 --object-manager-port=8076 --autoscaling-config=~/ray_bootstrap_config.yaml --dashboard-host=0.0.0.0"
 
 worker_start_ray_commands:
-    - export RAY_memory_usage_threshold=0.98
-    - ray stop
-    - >-
-      ray start
-      --address=$RAY_HEAD_IP:6379
-      --object-manager-port=8076
+    - sudo su - ray -c "export RAY_memory_usage_threshold=0.98"
+    - sudo su - ray -c "export NUMEXPR_MAX_THREADS=32"
+    - sudo su - ray -c "ray stop"
+    - sudo su - ray -c "ray start --address=$RAY_HEAD_IP:6379 --object-manager-port=8076"
