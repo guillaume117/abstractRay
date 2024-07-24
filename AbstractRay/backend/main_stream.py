@@ -169,7 +169,6 @@ async def prepare_evaluation(
                     y_max=box_y_max,
                     noise_level=noise
                 )
-            print("model last layer",model_last_layer)
             unstack_network = UnStackNetwork(model, image_tensor.shape[1:],last_layer=model_last_layer)
             messages.append("UnStackNetwork executed successfully")
 

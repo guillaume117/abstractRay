@@ -87,7 +87,7 @@ class UnStackNetwork:
             elif isinstance(layer, nn.AdaptiveAvgPool2d):
                 x = self.process_avgpool_layer(name, layer, x)
                 self.compare_outputs(layer(original_output), x, name)
-                print(x.shape)
+
             elif isinstance(layer, (nn.ReLU, nn.Sigmoid, nn.Tanh, nn.MaxPool2d)):
                 x = self.process_activation_layer(name, layer, x)
                 self.compare_outputs(layer(original_output), x, name)

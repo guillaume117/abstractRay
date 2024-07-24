@@ -3,7 +3,7 @@ cluster_name: abstract-ray-cluster
 
 # The maximum number of workers nodes to launch in addition to the head
 # node
-max_workers: 9
+max_workers: 4
 
 # The autoscaler will scale up the cluster faster with higher upscaling speed.
 # E.g., if the task requires adding more nodes then autoscaler will gradually
@@ -15,8 +15,7 @@ upscaling_speed: 5
 # and opens all the necessary ports to support the Ray cluster.
 # Empty string means disabled.
 docker:
-  image: "rayproject/ray-ml:latest-cpu" # You can change this to latest-cpu if you don't need GPU support and want a faster startup
-    # image: rayproject/ray:latest-gpu   # use this one if you don't need ML dependencies, it's faster to pull
+  image: "rayproject/ray-ml:latest" # Using the latest image with GPU support
   container_name: "ray_container"
   pull_before_run: True
   run_options:
@@ -35,16 +34,16 @@ auth:
 
 available_node_types:
     ray_head_default:
-        resources: {"CPU": 32, "memory": 128849018880}  # 32 CPUs and 128 GB of memory
+        resources: {"CPU": 48, "memory": 206158430208, "GPU": 4}  # 48 CPUs, 192 GB of memory, and 4 GPUs
         node_config:
-            machineType: n2-standard-32
+            machineType: g2-standard-48
             disks:
               - boot: true
                 autoDelete: true
                 type: PERSISTENT
                 initializeParams:
-                  diskSizeGb: 100
-                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
+                  diskSizeGb: 200
+                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-gpu
             networkInterfaces:
               - network: global/networks/default
                 accessConfigs:
@@ -53,18 +52,18 @@ available_node_types:
                     # To allow external HTTP(S) traffic to reach the instances.
                     natIP: # If you have a static IP, you can specify it here.
     ray_worker_large:
-        min_workers: 9
-        max_workers: 9
-        resources: {"CPU": 32, "memory": 128849018880}  # 32 CPUs and 128 GB of memory
+        min_workers: 4
+        max_workers: 4
+        resources: {"CPU": 48, "memory": 206158430208, "GPU": 4}  # 48 CPUs, 192 GB of memory, and 4 GPUs
         node_config:
-            machineType: n2-standard-32
+            machineType: g2-standard-48
             disks:
               - boot: true
                 autoDelete: true
                 type: PERSISTENT
                 initializeParams:
-                  diskSizeGb: 100
-                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
+                  diskSizeGb: 200
+                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-gpu
             scheduling:
               - preemptible: true
 
@@ -99,7 +98,7 @@ worker_setup_commands:
 head_start_ray_commands:
     - export RAY_memory_usage_threshold=1
     - export RAY_memory_monitor_refresh_ms=0
-    - export NUMEXPR_MAX_THREADS=32
+    - export NUMEXPR_MAX_THREADS=48
     - ray stop
     - >-
       ray start
@@ -112,7 +111,7 @@ head_start_ray_commands:
 worker_start_ray_commands:
     - export RAY_memory_usage_threshold=1
     - export RAY_memory_monitor_refresh_ms=0
-    - export NUMEXPR_MAX_THREADS=32
+    - export NUMEXPR_MAX_THREADS=48
     - ray stop
     - >-
       ray start
