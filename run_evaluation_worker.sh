@@ -3,20 +3,20 @@
 # Paramètres fixes
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 NETWORK_FILE="./AbstratRay/src/CNN/simple_cnn_fashionmnist.pth"
-INPUT_IMAGE="./test.jpeg"
-NETWORK_NAME="simplecnn"
+INPUT_IMAGE="./cut_dog.jpeg"
+NETWORK_NAME="vgg16"
 BACK_END="cpu"
-RAM=12
+RAM=42
 RESIZE_INPUT="True"
 RESIZE_WIDTH=224    
 RESISE_HEIGHT=224
 BOX_INPUT="False"
-ADD_SYMBOL="True"
+ADD_SYMBOL="False"
 RELEVANCE_DUMP="False"
 
 NOISE=0.00001
 
-for NUM_WORKER in {5..10}; do
+for NUM_WORKER in {0..10}; do
     python ./AbstractRay/main.py \
         --network_file $NETWORK_FILE \
         --input_image $INPUT_IMAGE \

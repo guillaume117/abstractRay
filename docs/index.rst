@@ -12,21 +12,20 @@ Features
 ========
 
 - Load custom models (ONNX) or pre-trained models (VGG16, VGG19, ResNet, SimpleCNN)
-- Validate and transform input images
+- Validate and transform input  images
 - Generate zonotopes for model evaluation
-- Execute model evaluations using multiple workers and backends (CPU, CUDA)
+- Execute model evaluations using multiple workers on Ray Kubernetes Cluster and backends (CPU, CUDA)
 - Visualize evaluation results
-
 
  Command Line Interface (CLI)
 =============================
-
 You can run the model evaluator using the command line interface (CLI) or through the Streamlit web interface.
 1. **Evaluate a model using the CLI:**
 
-    ``` sh
-    python evaluate_model.py --network_file path/to/model.onnx --input_image path/to/image.jpg --network_name custom --num_worker 4 --back_end cpu --noise 0.00001 --RAM 4.0 --resize_input True --resize_width 224 --resize_height 224 --box_input False --add_symbol True --relevance_dump True
-    ```
+``` sh
+python evaluate_model.py --network_file path/to/model.onnx --input_image path/to/image.jpg --network_name custom --num_worker 4 --back_end cpu --noise 0.00001 --RAM 4.0 --resize_input True --resize_width 224 --resize_height 224 --box_input False --add_symbol True --relevance_dump True
+```
+
 2. **Arguments:**
 
     - `--network_file`: Path to the network file (.onnx, .pt, .pth) (required for custom models)
