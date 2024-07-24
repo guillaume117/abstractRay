@@ -78,12 +78,12 @@ def static_process_linear_layer(abstract_domain, function_center, function_epsil
         dim_chunk_val = min(dim_chunk_val_input, dim_chunk_val_output)
 
         evaluator = SparseEvaluation(
-            zonotope,
-            chunk_size=dim_chunk_val,
-            function=function_epsilon,
-            mask_coef=mask_epsilon,
-            device=device
-        )
+                                    zonotope,
+                                    chunk_size=dim_chunk_val,
+                                    function=function_epsilon,
+                                    mask_coef=mask_epsilon,
+                                    device=device
+                                    )
 
         zonotope = evaluator.evaluate_all_chunks(num_workers=num_workers)
         len_zono = zonotope.size(0)
@@ -94,13 +94,13 @@ def static_process_linear_layer(abstract_domain, function_center, function_epsil
             if new_sparse is not None:
                 print(f'new_sparse size {new_sparse.size()}')
                 evaluator_new_noise = SparseEvaluation(
-                    new_sparse,
-                    chunk_size=dim_chunk_val,
-                    function=function_epsilon,
-                    mask_coef=mask_epsilon,
-                    eval_start_index=len_zono,
-                    device=device
-                )
+                                                        new_sparse,
+                                                        chunk_size=dim_chunk_val,
+                                                        function=function_epsilon,
+                                                        mask_coef=mask_epsilon,
+                                                        eval_start_index=len_zono,
+                                                        device=device
+                                                        )
                 new_sparse = evaluator_new_noise.evaluate_all_chunks(num_workers=num_workers)
                 zonotope = torch.sparse_coo_tensor(zonotope.indices(), zonotope.values(), size=new_sparse.size()).coalesce()
                 zonotope += new_sparse
