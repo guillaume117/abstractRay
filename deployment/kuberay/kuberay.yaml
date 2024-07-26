@@ -107,7 +107,6 @@
         ray start
         --head
         --port=6379
-        --resources:'{"CPU": 16, "memory": 68719476736}'
         --object-manager-port=8076
         --autoscaling-config=~/ray_bootstrap_config.yaml
         --dashboard-host=0.0.0.0
@@ -121,4 +120,4 @@
         ray start
         --address=$RAY_HEAD_IP:6379
         --object-manager-port=8076
-        --resources:'{"CPU": 16, "memory": 68719476736}'
+
