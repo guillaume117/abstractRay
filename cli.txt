@@ -1,0 +1,2 @@
+
+ ray job submit --address http://localhost:8265   --runtime-env-json '{"working_dir":"./", "excludes":["/.git/","./docs/","./proto/"]}' -- python run_eval.py ./run_evaluation_worker.sh
