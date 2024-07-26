@@ -22,7 +22,7 @@
     run_options:
       - --ulimit nofile=65536:65536
       - --cpus="16"
-      - --nthreads="16"
+
 
   idle_timeout_minutes: 5
 
