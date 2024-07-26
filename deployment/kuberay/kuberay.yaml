@@ -68,7 +68,7 @@
                     diskSizeGb: 100
                   sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
               scheduling:
-                - preemptible: true
+                - preemptible: false
 
   head_node_type: ray_head_default
   file_mounts: {
@@ -101,7 +101,7 @@
   head_start_ray_commands:
       - export RAY_memory_usage_threshold=1
       - export RAY_memory_monitor_refresh_ms=0
-      - export NUMEXPR_MAX_THREADS=32
+      - export NUMEXPR_MAX_THREADS=16
       - ray stop
       - >-
         ray start
@@ -109,13 +109,13 @@
         --port=6379
         --resources:'{"CPU": 16, "memory": 68719476736}'
         --object-manager-port=8076
-        --autoscaling-config=~/ray_bootstrap_c  onfig.yaml
+        --autoscaling-config=~/ray_bootstrap_config.yaml
         --dashboard-host=0.0.0.0
 
   worker_start_ray_commands:
       - export RAY_memory_usage_threshold=1
       - export RAY_memory_monitor_refresh_ms=0
-      - export NUMEXPR_MAX_THREADS=32
+      - export NUMEXPR_MAX_THREADS=16
       - ray stop
       - >-
         ray start
