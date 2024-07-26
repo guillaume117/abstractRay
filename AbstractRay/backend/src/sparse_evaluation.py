@@ -17,7 +17,7 @@ else:
     num_gpus = 0
     num_cpus = os.cpu_count()
 
-@ray.remote(num_gpus=num_gpus,num_cpus=num_cpus)
+@ray.remote(resources={"worker":1})
 class SparseWorker:
     """
     A worker class to evaluate chunks of a sparse tensor using Ray for parallel computation.
