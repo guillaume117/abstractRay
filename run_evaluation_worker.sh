@@ -4,19 +4,19 @@
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 NETWORK_FILE="./AbstratRay/src/CNN/simple_cnn_fashionmnist.pth"
 INPUT_IMAGE="./cut_dog.jpeg"
-NETWORK_NAME="vgg16"
+NETWORK_NAME="simplecnn"
 BACK_END="cpu"
-RAM=42
+RAM=16
 RESIZE_INPUT="True"
 RESIZE_WIDTH=224    
 RESISE_HEIGHT=224
 BOX_INPUT="False"
-ADD_SYMBOL="False"
+ADD_SYMBOL="True"
 RELEVANCE_DUMP="False"
 
 NOISE=0.00001
 
-for NUM_WORKER in {0..10}; do
+for NUM_WORKER in {1..1}; do
     python ./AbstractRay/main.py \
         --network_file $NETWORK_FILE \
         --input_image $INPUT_IMAGE \
