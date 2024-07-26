@@ -21,7 +21,7 @@
     pull_before_run: True
     run_options:
       - --ulimit nofile=65536:65536
-      - --cpus="16"
+      - --cpuset-cpus="0-15"
 
 
   idle_timeout_minutes: 5
