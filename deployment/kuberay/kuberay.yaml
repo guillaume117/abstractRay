@@ -14,14 +14,14 @@
   # This executes all commands on all nodes in the docker container,
   # and opens all the necessary ports to support the Ray cluster.
   # Empty string means disabled.
-  docker:
-    image: "rayproject/ray-ml:latest-cpu" # You can change this to latest-cpu if you don't need GPU support and want a faster startup
+  #docker:
+  #  image: "rayproject/ray-ml:latest-cpu" # You can change this to latest-cpu if you don't need GPU support and want a faster startup
       # image: rayproject/ray:latest-gpu   # use this one if you don't need ML dependencies, it's faster to pull
-    container_name: "ray_container"
-    pull_before_run: True
-    run_options:
-      - --ulimit nofile=65536:65536
-      - --cpuset-cpus="0-15"
+  #  container_name: "ray_container"
+  #  pull_before_run: True
+  #  run_options:
+  #    - --ulimit nofile=65536:65536
+  #    - --cpuset-cpus="0-15"
 
 
   idle_timeout_minutes: 5
