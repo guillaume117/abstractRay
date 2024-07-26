@@ -12,9 +12,8 @@ def ensure_ray_initialized():
     If Ray is not already initialized, this function initializes Ray with the number of CPUs available on the system.
     """
     if not ray.is_initialized():
-        num_cpus = os.cpu_count()
-        print('ray_init')
-        ray.init(num_cpus=num_cpus)
+        print('ray_init, os.cpu_count = ', os.cpu_count())
+        ray.init()
 
 class SimpleCNN(nn.Module):
     """

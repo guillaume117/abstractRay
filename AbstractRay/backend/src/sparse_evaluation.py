@@ -7,7 +7,7 @@ import ray
 from tqdm import tqdm
 import os
 
-os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
+
 
 dtyped = torch.float32
 if os.getenv("RAY_BACKEND") == 'cuda':

@@ -1,120 +1,123 @@
-# An unique identifier for the head node and workers of this cluster.
-cluster_name: abstract-ray-cluster
+  # An unique identifier for the head node and workers of this cluster.
+  cluster_name: abstract-ray-cluster
 
-# The maximum number of workers nodes to launch in addition to the head
-# node
-max_workers: 9
+  # The maximum number of workers nodes to launch in addition to the head
+  # node
+  max_workers: 1
 
-# The autoscaler will scale up the cluster faster with higher upscaling speed.
-# E.g., if the task requires adding more nodes then autoscaler will gradually
-# scale up the cluster in chunks of upscaling_speed*currently_running_nodes.
-# This number should be > 0.
-upscaling_speed: 5
+  # The autoscaler will scale up the cluster faster with higher upscaling speed.
+  # E.g., if the task requires adding more nodes then autoscaler will gradually
+  # scale up the cluster in chunks of upscaling_speed*currently_running_nodes.
+  # This number should be > 0.
+  upscaling_speed: 1
 
-# This executes all commands on all nodes in the docker container,
-# and opens all the necessary ports to support the Ray cluster.
-# Empty string means disabled.
-docker:
-  image: "rayproject/ray-ml:latest-cpu" # You can change this to latest-cpu if you don't need GPU support and want a faster startup
-    # image: rayproject/ray:latest-gpu   # use this one if you don't need ML dependencies, it's faster to pull
-  container_name: "ray_container"
-  pull_before_run: True
-  run_options:
-    - --ulimit nofile=65536:65536
+  # This executes all commands on all nodes in the docker container,
+  # and opens all the necessary ports to support the Ray cluster.
+  # Empty string means disabled.
+  docker:
+    image: "rayproject/ray-ml:latest-cpu" # You can change this to latest-cpu if you don't need GPU support and want a faster startup
+      # image: rayproject/ray:latest-gpu   # use this one if you don't need ML dependencies, it's faster to pull
+    container_name: "ray_container"
+    pull_before_run: True
+    run_options:
+      - --ulimit nofile=65536:65536
+      - --cpus="16"
 
-idle_timeout_minutes: 5
+  idle_timeout_minutes: 5
 
-provider:
-    type: gcp
-    region: europe-west4
-    availability_zone: europe-west4-a
-    project_id: hpcberthelot24
+  provider:
+      type: gcp
+      region: europe-west4
+      availability_zone: europe-west4-a
+      project_id: hpcberthelot24
 
-auth:
-    ssh_user: ubuntu
+  auth:
+      ssh_user: ubuntu
 
-available_node_types:
-    ray_head_default:
-        resources: {"CPU": 32, "memory": 128849018880}  # 32 CPUs and 128 GB of memory
-        node_config:
-            machineType: n2-standard-32
-            disks:
-              - boot: true
-                autoDelete: true
-                type: PERSISTENT
-                initializeParams:
-                  diskSizeGb: 100
-                 # sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
-            networkInterfaces:
-              - network: global/networks/default
-                accessConfigs:
-                  - name: External NAT
-                    type: ONE_TO_ONE_NAT
-                    # To allow external HTTP(S) traffic to reach the instances.
-                    natIP: # If you have a static IP, you can specify it here.
-    ray_worker_large:
-        min_workers: 9
-        max_workers: 9
-        resources: {"CPU": 32, "memory": 128849018880}  # 32 CPUs and 128 GB of memory
-        node_config:
-            machineType: n2-standard-32
-            disks:
-              - boot: true
-                autoDelete: true
-                type: PERSISTENT
-                initializeParams:
-                  diskSizeGb: 100
-                 # sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
-            scheduling:
-              - preemptible: true
+  available_node_types:
+      ray_head_default:
+          resources: {"CPU": 16, "memory": 68719476736}  # 16 CPUs and 64 GB of memory
+          node_config:
+              machineType: n2-standard-16
+              disks:
+                - boot: true
+                  autoDelete: true
+                  type: PERSISTENT
+                  initializeParams:
+                    diskSizeGb: 100
+                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
+              networkInterfaces:
+                - network: global/networks/default
+                  accessConfigs:
+                    - name: External NAT
+                      type: ONE_TO_ONE_NAT
+                      # To allow external HTTP(S) traffic to reach the instances.
+                      natIP: # If you have a static IP, you can specify it here.
+      ray_worker_large:
+          min_workers: 0
+          max_workers: 1
+          resources: {"CPU": 16, "memory": 68719476736}  # 16 CPUs and 64 GB of memory
+          node_config:
+              machineType: n2-standard-16
+              disks:
+                - boot: true
+                  autoDelete: true
+                  type: PERSISTENT
+                  initializeParams:
+                    diskSizeGb: 100
+                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
+              scheduling:
+                - preemptible: true
 
-head_node_type: ray_head_default
-file_mounts: {
-"/home/ubuntu/AbstractRay": "/home/guiberthelot/AbstractRay"
-}
+  head_node_type: ray_head_default
+  file_mounts: {
+  "/home/ubuntu/AbstractRay": "/home/guiberthelot/AbstractRay"
+  }
 
-cluster_synced_files: []
+  cluster_synced_files: []
 
-file_mounts_sync_continuously: False
+  file_mounts_sync_continuously: False
 
-rsync_exclude:
-    - "**/.git"
-    - "**/.git/**"
+  rsync_exclude:
+      - "**/.git"
+      - "**/.git/**"
 
-rsync_filter:
-    - ".gitignore"
+  rsync_filter:
+      - ".gitignore"
 
-initialization_commands: []
+  initialization_commands: []
 
-setup_commands: []
+  setup_commands: []
 
-head_setup_commands:
-  - pip install google-api-python-client==1.7.8
-  - pip install -r ../ubuntu/AbstractRay/AbstractRay/backend/requirements.txt
+  head_setup_commands:
+    - pip install google-api-python-client==1.7.8
+    - pip install -r ../ubuntu/AbstractRay/AbstractRay/backend/requirements.txt
 
-worker_setup_commands: 
-  - pip install google-api-python-client==1.7.8
-  - pip install -r ../ubuntu/AbstractRay/AbstractRay/backend/requirements.txt
+  worker_setup_commands: 
+    - pip install google-api-python-client==1.7.8
+    - pip install -r ../ubuntu/AbstractRay/AbstractRay/backend/requirements.txt
 
-head_start_ray_commands:
-    - export RAY_memory_usage_threshold=1
-    - export RAY_memory_monitor_refresh_ms=0
-    - export NUMEXPR_MAX_THREADS=32
-    - ray stop
-    - >-
-      ray start
-      --head
-      --port=6379
-      --object-manager-port=8076
-      --autoscaling-config=~/ray_bootstrap_c  onfig.yaml
-      --dashboard-host=0.0.0.0
+  head_start_ray_commands:
+      - export RAY_memory_usage_threshold=1
+      - export RAY_memory_monitor_refresh_ms=0
+      - export NUMEXPR_MAX_THREADS=32
+      - ray stop
+      - >-
+        ray start
+        --head
+        --port=6379
+        --resources:'{"CPU": 16, "memory": 68719476736}'
+        --object-manager-port=8076
+        --autoscaling-config=~/ray_bootstrap_c  onfig.yaml
+        --dashboard-host=0.0.0.0
 
-worker_start_ray_commands:
-    - export RAY_memory_usage_threshold=1
-    - export RAY_memory_monitor_refresh_ms=0
-    - export NUMEXPR_MAX_THREADS=32
-    - ray stop
-    - >-
-      ray start
-      --address=$RAY_HEAD_IP:6379
-      --object-manager-port=8076
+  worker_start_ray_commands:
+      - export RAY_memory_usage_threshold=1
+      - export RAY_memory_monitor_refresh_ms=0
+      - export NUMEXPR_MAX_THREADS=32
+      - ray stop
+      - >-
+        ray start
+        --address=$RAY_HEAD_IP:6379
+        --object-manager-port=8076
+        --resources:'{"CPU": 16, "memory": 68719476736}'

@@ -13,8 +13,9 @@ from AbstractRay.backend.src.util import  SimpleCNN
 from AbstractRay.backend.src.zono_sparse_gen import ZonoSparseGeneration
 from AbstractRay.backend.src.evaluator import ModelEvaluator
 from AbstractRay.backend.src.unstack_network import UnStackNetwork
+from AbstractRay.backend.src.util import ensure_ray_initialized
 
-os.environ["RAY_NUM_CPUS"] = str(os.cpu_count())
+ensure_ray_initialized()
 
 
 def load_model(network_name,network_file=None):
