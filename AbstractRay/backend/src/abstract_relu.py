@@ -28,7 +28,7 @@ class AbstractReLU(nn.Module):
         Returns:
             dict: The updated abstract domain after ReLU activation.
         """
-        zonotope = abstract_domain['zonotope']
+      
         center = abstract_domain['center']
         sum = abstract_domain['sum']
         trash = abstract_domain['trash']
@@ -66,7 +66,7 @@ class AbstractReLU(nn.Module):
         trash_layer[mask_p] = noise_approx_linear[mask_p] + torch.abs(coef_approx_linear[mask_p]) * trash_layer[mask_p]
         trash_layer[mask_0] = 0
 
-        abstract_domain['zonotope'] = zonotope
+       
         abstract_domain['center'] = mask_center
         abstract_domain['sum'] = sum
         abstract_domain['trash'] = trash_layer.to('cpu')

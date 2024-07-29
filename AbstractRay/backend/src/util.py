@@ -62,7 +62,9 @@ class SimpleCNN(nn.Module):
         Returns:
             torch.Tensor: Output tensor after passing through the network.
         """
-        x = self.pool1(self.relu1(self.conv1(x)))
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.pool1(x)
         x = self.pool2(self.relu2(self.conv2(x)))
         x = self.avgpool(x)
         x = self.flatten(x)

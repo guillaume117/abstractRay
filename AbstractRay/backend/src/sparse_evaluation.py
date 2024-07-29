@@ -6,10 +6,10 @@ import torch.nn as nn
 import ray
 from tqdm import tqdm
 import os
+import copy
 
 
-
-dtyped = torch.float32
+dtyped = torch.long
 if os.getenv("RAY_BACKEND") == 'cuda':
     num_gpus = 1
     num_cpus = os.cpu_count()
@@ -17,7 +17,7 @@ else:
     num_gpus = 0
     num_cpus = os.cpu_count()
 
-@ray.remote(num_cpus=16, resources={"worker":1})
+@ray.remote(num_cpus=num_cpus,num_gpus=num_gpus)
 class SparseWorker:
     """
     A worker class to evaluate chunks of a sparse tensor using Ray for parallel computation.
@@ -266,6 +266,212 @@ class SparseEvaluation:
             global_sparse_tensor = torch.sparse_coo_tensor(global_indices, global_values, size=self.output_size).coalesce().to('cpu')
 
         return global_sparse_tensor
+    
+
+
+@ray.remote
+class SparseWorkerParallel:
+    def __init__(self, x_chunk, device):
+        self.x_chunk = x_chunk.to(device)
+        self.device = device
+
+    def copy(self,indice,indice_in=None):
+        copy_name = f'copy_{indice}'
+        
+        if indice_in is None:
+            copy_ = copy.deepcopy(self.x_chunk)
+            setattr(self, copy_name, copy_)
+        
+        else:
+            name_in = f'copy_{indice_in}'
+            copy_=copy.deepcopy(getattr(self,name_in))
+            setattr(self,copy_name,copy_)
+
+    
+    def add(self,indice_1=None,indice_2=None,result_indice=None):
+            copy_name_1 = f'copy_{indice_1}'
+            copy_name_2 = f'copy_{indice_2}'
+            if hasattr(self, copy_name_1):
+                x_1 = getattr(self, copy_name_1)
+            if hasattr(self, copy_name_1):
+                x_2 = getattr(self, copy_name_2)
+            if indice_1 is None:
+                x_1= self.x_chunk
+            if indice_2 is None:
+                x_2 = self.x_chunk
+            x=(x_1+x_2).coalesce()
+            if result_indice is None:
+                self.x_chunk=x
+            else :
+                copy_name = f'copy_{result_indice}'
+                setattr(self, copy_name, x)
+
+
+    def sub(self,indice_1=None,indice_2=None,result_indice=None):
+            copy_name_1 = f'copy_{indice_1}'
+            copy_name_2 = f'copy_{indice_2}'
+            if hasattr(self, copy_name_1):
+                x_1 = getattr(self, copy_name_1)
+            if hasattr(self, copy_name_1):
+                x_2 = getattr(self, copy_name_2)
+            if indice_1 is None:
+                x_1= self.x_chunk
+            if indice_2 is None:
+                x_2 = self.x_chunk
+            x=(x_1-x_2).coalesce()
+            if result_indice is None:
+                self.x_chunk=x
+            else :
+                copy_name = f'copy_{result_indice}'
+                setattr(self, copy_name, x)
+
+
+    def forward(self,function,mask_epsilon,chunk_size=1,over_copy = False, indice_copy=None):
+        """
+        Evaluate chunks of the sparse tensor.
+
+        Returns:
+            tuple: Indices and values of the evaluated sparse tensor.
+        """
+        if not over_copy:
+            x = self.x_chunk
+        else : 
+            copy_name = f'copy_{indice_copy}'
+            if hasattr(self, copy_name):
+                x = getattr(self, copy_name)
+                print(x.size())
+
+        dense_shape = list(x.size())
+     
+        x_0 = torch.zeros(1, *dense_shape[1:])
+    
+        output_size = list(function(x_0).shape)
+        output_size[0] = dense_shape[0]
+
+        with torch.no_grad():
+            indices = x.indices().t()
+            values = x.values()
+
+            global_storage = {
+                'indices': [],
+                'values': []
+            }
+
+            num_chunks = (x.size(0) + chunk_size - 1) // chunk_size
+          
+
+            for i in range(num_chunks):
+                chunk_start = i * chunk_size
+                chunk_end = min((i + 1) * chunk_size, x.size(0))
+                mask = (indices[:, 0] >= chunk_start) & (indices[:, 0] < chunk_end)
+
+                chunk_indices = indices[mask]
+                chunk_indices[:, 0] -= chunk_start
+
+                chunk_values = values[mask]
+                chunk_size = chunk_end - chunk_start
+
+                chunk_sparse_tensor = torch.sparse_coo_tensor(
+                    chunk_indices.t(), chunk_values,
+                    torch.Size([chunk_size] + dense_shape[1:])
+                ).coalesce()
+
+                chunk_dense_tensor = chunk_sparse_tensor.to_dense().to(self.device)
+          
+                func_output = function(mask_epsilon * chunk_dense_tensor)
+           
+
+                func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
+                add_indices = func_output_sparse.indices().to(dtyped) + torch.tensor(
+                    [[chunk_start ]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=torch.long, device=torch.device('cpu')
+                )
+
+                global_storage['indices'].append(add_indices.cpu())
+                global_storage['values'].append(func_output_sparse.values().cpu())
+
+              
+          
+
+     
+
+            
+            global_indices = torch.cat(global_storage['indices'], dim=1)
+            global_values = torch.cat(global_storage['values'], dim=0)
+        if not over_copy:    
+            self.x_chunk = torch.sparse_coo_tensor(global_indices, global_values, size=output_size).coalesce().to('cpu')
+            return torch.sum(torch.abs(self.x_chunk),dim=0).coalesce().to_dense()
+        else:
+            x=torch.sparse_coo_tensor(global_indices, global_values, size=output_size).coalesce().to('cpu')
+            setattr(self,copy_name,x)
+
+            return torch.sum(torch.abs(x),dim=0).coalesce().to_dense()
+    
+
+class SparseEvaluationParallel:
+    def __init__(self, x: FloatTensor, num_workers: int, device: torch.device):
+        self.x = x
+        self.num_workers = num_workers
+        self.device = device
+        self.dense_shape = list(x.size())
+        
+        self.workers = self._distribute_tensor()
+
+    def _distribute_tensor(self):
+        workers = []
+        chunk_size = (self.x.size(0) + self.num_workers - 1) // self.num_workers
+        indices = self.x.indices()
+        values = self.x.values()
+        indices = indices.t()
+     
+        for i in range(self.num_workers):
+            chunk_start = i * chunk_size
+            chunk_end = min((i + 1) * chunk_size, self.dense_shape[0])
+            mask = (indices[:, 0] >= chunk_start) & (indices[:, 0] < chunk_end)
+
+            worker_indices = indices[mask]
+            worker_indices[:, 0] -= chunk_start
+
+            worker_values = values[mask]
+            worker_size = chunk_end - chunk_start
+
+            if worker_indices.size(0) == 0:
+                continue
+
+            worker_sparse_tensor = torch.sparse_coo_tensor(
+                worker_indices.t(), worker_values,
+                torch.Size([worker_size] + self.dense_shape[1:])
+            ).coalesce()
+
+
+
+
+            worker = SparseWorkerParallel.remote(worker_sparse_tensor, self.device)
+            workers.append(worker)
+        return workers
+    
+    def copy(self,indice,indice_in=None):
+        for i in range(self.num_workers):
+            ray.get(self.workers[i].copy.remote(indice = indice,indice_in=indice_in))
+
+    def add(self,indice_1,indice_2,result_indice=None):
+        for i in range(self.num_workers):
+            ray.get(self.workers[i].add.remote(indice_1 = indice_1,indice_2=indice_2,result_indice=result_indice))
+    def sub(self,indice_1,indice_2,result_indice=None):
+        for i in range(self.num_workers):
+            ray.get(self.workers[i].sub.remote(indice_1 = indice_1,indice_2=indice_2,result_indice=result_indice))
+   
+
+    def forward(self, mask: torch.Tensor, function: Callable,chunk_size:int=1,over_copy =False,indice_copy=None):
+        tasks = []
+        for i in range(self.num_workers):
+
+            tasks.append(self.workers[i].forward.remote(function, mask.to(self.device),chunk_size,over_copy = over_copy, indice_copy=indice_copy))
+        results = ray.get(tasks)
+        sum=0
+        for result in results: 
+            sum += result   
+        
+        return sum
 
 def test_sparse_evaluation(x):
     """

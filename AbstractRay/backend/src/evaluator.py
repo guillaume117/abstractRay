@@ -5,6 +5,7 @@ from AbstractRay.backend.src.zono_sparse_gen import ZonoSparseGeneration
 from AbstractRay.backend.src.util import sparse_tensor_stats
 from AbstractRay.backend.src.process_layer import process_layer
 from AbstractRay.result.save_results_to_json import save_results_to_json
+from AbstractRay.backend.src.sparse_evaluation import SparseEvaluationParallel
 
 class ModelEvaluator:
     """
@@ -26,7 +27,7 @@ class ModelEvaluator:
         timestart (float): Start time of the evaluation process.
     """
 
-    def __init__(self, unstacked_model, abstract_domain, num_workers=0, available_RAM=8, device=torch.device('cpu'), add_symbol=True, renew_abstract_domain=False, verbose=False, json_file_prefix='evaluation_results', noise_level=0.00001,model_cut =False):
+    def __init__(self, unstacked_model, abstract_domain, num_workers=0, available_RAM=8, device=torch.device('cpu'), add_symbol=True, renew_abstract_domain=False, verbose=False, json_file_prefix='evaluation_results', noise_level=0.00001,model_cut =False,parralel_rel=True):
         """
         Initialize the ModelEvaluator class.
 
@@ -57,6 +58,12 @@ class ModelEvaluator:
         self.num_symbols = abstract_domain['zonotope']._nnz()
         self.input_tensor_size_init = tuple(abstract_domain['center'].size())
         self.model_cut =model_cut
+        self.parallel_rel=parralel_rel
+        self.evaluator_rel= None
+        if self.parallel_rel == True:
+            self.evaluator_rel = SparseEvaluationParallel(self.abstract_domain['zonotope'],num_workers=self.num_workers,device=self.device)
+            self.abstract_domain['zonotope'] =None
+
 
     def evaluate_model(self):
         """
@@ -97,30 +104,36 @@ class ModelEvaluator:
                 print(self.abstract_domain['trash'].size())
                 print(self.abstract_domain['perfect_domain'])
 
-            self.abstract_domain = process_layer(self.abstract_domain, self.name, self.details, self.num_workers, self.available_RAM, self.device, self.add_symbol)
-
+            self.abstract_domain = process_layer(self.abstract_domain, self.name, self.details, self.num_workers, self.available_RAM, self.device, self.add_symbol,parallel=self.parallel_rel,evaluator_rel=self.evaluator_rel)
+    
             if self.verbose:
                 print('*' * 100)
                 print(f'after layer {self.name}')
                 print(self.abstract_domain['center'].size())
-                print(self.abstract_domain['zonotope'].size())
+                #print(self.abstract_domain['zonotope'].size())
                 print(self.abstract_domain['sum'].size())
                 print(self.abstract_domain['trash'].size())
                 print(self.abstract_domain['perfect_domain'])
-
-            num_symbols = self.abstract_domain['zonotope'].size(0)
-            nnz = self.abstract_domain['zonotope']._nnz()
-            non_zero_percentage, memory_gain_percentage = sparse_tensor_stats(self.abstract_domain['zonotope'])
+            num_symbols=None
+            nnz=None
+            memory_gain_percentage=0
+            input_tensor_size=0
+            if  self.abstract_domain['zonotope'] is not None:
+                num_symbols = self.abstract_domain['zonotope'].size(0)
+                nnz = self.abstract_domain['zonotope']._nnz()
+            
+                non_zero_percentage, memory_gain_percentage = sparse_tensor_stats(self.abstract_domain['zonotope'])
+                input_tensor_size = tuple(self.abstract_domain['center'].size())
             end_time = time.time()
             computation_time = end_time - start_time
 
-            input_tensor_size = tuple(self.abstract_domain['center'].size())
+            
 
             layer_evaluation = {
                 "layer_name": self.name,
                 "layer_details": self.details,
                 "input_tensor_size": input_tensor_size,
-                "num_symbols": num_symbols,
+                "num_symbols": num_symbols if num_symbols is not None else 0,
                 "nnz": nnz,
                 "memory_gain_percentage": float(memory_gain_percentage),
                 "computation_time": computation_time,

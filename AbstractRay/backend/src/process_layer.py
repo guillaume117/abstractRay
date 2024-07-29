@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 import sys
-from AbstractRay.backend.src.process_abstract_maxpool2d_layer import process_max_pool2D
-from AbstractRay.backend.src.process_linear_layer import static_process_linear_layer
+from AbstractRay.backend.src.process_abstract_maxpool2d_2 import process_max_pool2D
+from AbstractRay.backend.src.process_linear_layer import static_process_linear_layer, static_process_linear_layer_parrallel
 from AbstractRay.backend.src.abstract_relu import AbstractReLU
 
-def process_layer(abstract_domain, name, details, num_worker, available_ram, device, add_symbol):
+def process_layer(abstract_domain, name, details, num_worker, available_ram, device, add_symbol,parallel=False,evaluator_rel =None):
     """
     Process a layer within the abstract domain.
 
@@ -28,29 +28,41 @@ def process_layer(abstract_domain, name, details, num_worker, available_ram, dev
         function_center = details['original']
         function_epsilon = details[f'epsilon_{name}']
         function_trash = details[f'noise_{name}']
-        
-        abstract_domain = static_process_linear_layer(
-            abstract_domain,
-            function_center=function_center,
-            function_epsilon=function_epsilon,
-            function_trash=function_trash,
-            num_workers=num_worker,
-            available_RAM=available_ram,
-            device=device,
-            add_symbol=add_symbol
-        )
-        return abstract_domain
-    
+        if not parallel:
+            abstract_domain = static_process_linear_layer(
+                abstract_domain,
+                function_center=function_center,
+                function_epsilon=function_epsilon,
+                function_trash=function_trash,
+                num_workers=num_worker,
+                available_RAM=available_ram,
+                device=device,
+                add_symbol=add_symbol
+            )
+            return abstract_domain
+        if parallel:
+            abstract_domain = static_process_linear_layer_parrallel(evaluator_rel=evaluator_rel,
+                                                                    abstract_domain=abstract_domain,
+                                                                    function_center=function_center,
+                                                                    function_epsilon=function_epsilon,
+                                                                    function_trash=function_trash,
+                                                                    device=device, 
+                                                                    available_RAM=available_ram,
+                                                                    num_workers=num_worker,
+                                                                    add_symbol=add_symbol)
+            
+            return abstract_domain
     if activation_layer:
         if activation_layer == 'MaxPool2d':
             abstract_domain = process_max_pool2D(
                 abstract_domain=abstract_domain,
+                evaluator_rel=evaluator_rel,
                 maxpool_layer=details['activation_function'],
                 num_workers=num_worker,
                 available_ram=available_ram,
                 device=device,
-                add_symbol=add_symbol
-            )
+                add_symbol=add_symbol)
+           
             return abstract_domain
         else:
             class_name = f"Abstract{activation_layer}"
@@ -58,4 +70,5 @@ def process_layer(abstract_domain, name, details, num_worker, available_ram, dev
             if AbstractClass:
                 abstract_instance = AbstractClass
                 abstract_domain = abstract_instance.evaluate(abstract_domain)
+            
                 return abstract_domain

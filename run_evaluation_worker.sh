@@ -8,15 +8,15 @@ NETWORK_NAME="simplecnn"
 BACK_END="cpu"
 RAM=16
 RESIZE_INPUT="True"
-RESIZE_WIDTH=224    
-RESISE_HEIGHT=224
+RESIZE_WIDTH=42
+RESISE_HEIGHT=42
 BOX_INPUT="False"
 ADD_SYMBOL="True"
 RELEVANCE_DUMP="False"
 
-NOISE=0.00001
+NOISE=0.0001
 
-for NUM_WORKER in {1..1}; do
+for NUM_WORKER in {2..2}; do
     python ./AbstractRay/main.py \
         --network_file $NETWORK_FILE \
         --input_image $INPUT_IMAGE \
@@ -30,5 +30,7 @@ for NUM_WORKER in {1..1}; do
         --resize_height $RESISE_HEIGHT\
         --box_input $BOX_INPUT \
         --add_symbol $ADD_SYMBOL \
-        --relevance_dump $RELEVANCE_DUMP;
+        --relevance_dump $RELEVANCE_DUMP\
+   
+
 done

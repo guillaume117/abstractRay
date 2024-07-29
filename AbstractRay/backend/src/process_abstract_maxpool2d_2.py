@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from AbstractRay.backend.src.util import get_largest_tensor_size
-from AbstractRay.backend.src.process_linear_layer import static_process_linear_layer
+from AbstractRay.backend.src.process_linear_layer import static_process_linear_layer,static_process_linear_layer_parrallel
 from AbstractRay.backend.src.abstract_relu import AbstractReLU
 import copy
 
@@ -108,7 +108,8 @@ def resize_dim_1(abstract_domain_1, abstract_domain):
                                                           abstract_domain['zonotope'].values(), 
                                                           size=zonotope_size).coalesce()
 
-def process_max_pool2D(abstract_domain, maxpool_layer, num_workers, available_ram, device, add_symbol):
+def process_max_pool2D(abstract_domain, evaluator_rel, maxpool_layer, num_workers, available_ram, device, add_symbol):
+
     """
     Process a MaxPool2D layer within the abstract domain.
 
@@ -129,9 +130,9 @@ def process_max_pool2D(abstract_domain, maxpool_layer, num_workers, available_ra
     with torch.no_grad():
         ident = nn.Identity()
         if not abstract_domain['perfect_domain']:
-            abstract_domain = static_process_linear_layer(abstract_domain, ident, ident, ident, 
-                                                          num_workers, available_ram, device, add_symbol)
-
+            abstract_domain = static_process_linear_layer_parrallel(evaluator_rel=evaluator_rel,abstract_domain=abstract_domain, function_center=ident, function_epsilon=ident, function_trash=ident, 
+                                                          num_workers=num_workers, available_RAM=available_ram, device=device, add_symbol=add_symbol)
+   
         center = abstract_domain['center']
         dim_x = center.size(1)
         kernel_size = maxpool_layer.kernel_size
@@ -162,50 +163,73 @@ def process_max_pool2D(abstract_domain, maxpool_layer, num_workers, available_ra
 
         ident = nn.Identity()
 
-        abstract_domain_1 = static_process_linear_layer(copy.deepcopy(abstract_domain),
+        evaluator_rel.copy(indice=1)
+        abstract_domain_1 = static_process_linear_layer_parrallel(evaluator_rel,copy.deepcopy(abstract_domain),
                                                         conv_0, conv_0, conv_0,
-                                                        num_workers, available_ram, device, add_symbol)
+                                                        num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=1)
+      
 
         abstract_domain_1 = AbstractReLU.evaluate(abstract_domain_1)
 
-        abstract_domain_1 = static_process_linear_layer(abstract_domain_1,
+
+        abstract_domain_1 = static_process_linear_layer_parrallel(evaluator_rel,abstract_domain_1,
                                                         ident, ident, ident,
-                                                        num_workers, available_ram, device, add_symbol)
-
+                                                        num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=1)
+        
+   
         resize_dim_1(abstract_domain_1, abstract_domain)
+     
 
-        abstract_domain_2 = static_process_linear_layer(copy.deepcopy(abstract_domain),
+        evaluator_rel.copy(indice=2)
+        abstract_domain_2 = static_process_linear_layer_parrallel(evaluator_rel,copy.deepcopy(abstract_domain),
                                                         conv_1, conv_1, conv_1,
-                                                        num_workers, available_ram, device, add_symbol)
+                                                        num_workers, available_ram, device, add_symbol,over_copy=True, indice_copy=2)
+        
 
         abstract_domain_1 = abstract_addition(abstract_domain_1, abstract_domain_2)
 
-        abstract_domain_2 = static_process_linear_layer(copy.deepcopy(abstract_domain),
+
+        evaluator_rel.add(indice_1=1,indice_2=2,result_indice=1)
+
+        
+        evaluator_rel.copy(indice=2)
+        abstract_domain_2 = static_process_linear_layer_parrallel(evaluator_rel,copy.deepcopy(abstract_domain),
                                                         conv_2, conv_2, conv_2,
-                                                        num_workers, available_ram, device, add_symbol)
+                                                        num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=2)
+        print('oijojioijoijdejde')
 
         abstract_domain_2 = abstract_substraction(abstract_domain_2, abstract_domain_1)
+        evaluator_rel.sub(indice_1=2,indice_2=1,result_indice=2)
 
         abstract_domain_3 = AbstractReLU.evaluate(abstract_domain_2)
+        evaluator_rel.copy(indice=3,indice_in=2)
 
-        abstract_domain_3 = static_process_linear_layer(abstract_domain_3,
+        abstract_domain_3 = static_process_linear_layer_parrallel(evaluator_rel,abstract_domain_3,
                                                         ident, ident, ident,
-                                                        num_workers, available_ram, device, add_symbol)
+                                                        num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=2)
         resize_dim_1(abstract_domain_3, abstract_domain)
+
+        evaluator_rel.add(indice_1=1,indice_2=3,result_indice=3)
 
         abstract_domain_3 = abstract_addition(abstract_domain_1, abstract_domain_3)
 
-        abstract_domain_2 = static_process_linear_layer(copy.deepcopy(abstract_domain),
+        evaluator_rel.copy(indice=2)
+        abstract_domain_2 = static_process_linear_layer_parrallel(evaluator_rel,copy.deepcopy(abstract_domain),
                                                         conv_3, conv_3, conv_3,
-                                                        num_workers, available_ram, device, add_symbol)
+                                                        num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=2)
+        evaluator_rel.sub(indice_1=2,indice_2=3,result_indice=2)
         abstract_domain_2 = abstract_substraction(abstract_domain_2, abstract_domain_3)
 
-        abstract_domain_4 = AbstractReLU.evaluate(abstract_domain_2)
+        abstract_domain_2 = AbstractReLU.evaluate(abstract_domain_2)
 
-        abstract_domain_4 = static_process_linear_layer(abstract_domain_4,
+
+
+        abstract_domain_2 = static_process_linear_layer_parrallel(evaluator_rel,abstract_domain_2,
                                                         ident, ident, ident,
-                                                        num_workers, available_ram, device, add_symbol)
+                                                        num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=2)
 
-        abstract_domain_4 = abstract_addition(abstract_domain_3, abstract_domain_4)
+        abstract_domain = abstract_addition(abstract_domain_3, abstract_domain_2)
+        evaluator_rel.add(indice_1=3,indice_2=2)
 
-        return abstract_domain_4
+
+        return abstract_domain
