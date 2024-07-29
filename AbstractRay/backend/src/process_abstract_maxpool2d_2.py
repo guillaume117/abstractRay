@@ -196,7 +196,7 @@ def process_max_pool2D(abstract_domain, evaluator_rel, maxpool_layer, num_worker
         abstract_domain_2 = static_process_linear_layer_parrallel(evaluator_rel,copy.deepcopy(abstract_domain),
                                                         conv_2, conv_2, conv_2,
                                                         num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=2)
-        print('oijojioijoijdejde')
+    
 
         abstract_domain_2 = abstract_substraction(abstract_domain_2, abstract_domain_1)
         evaluator_rel.sub(indice_1=2,indice_2=1,result_indice=2)

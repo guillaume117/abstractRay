@@ -16,7 +16,7 @@ RELEVANCE_DUMP="False"
 
 NOISE=0.0001
 
-for NUM_WORKER in {2..2}; do
+for NUM_WORKER in {1..4}; do
     python ./AbstractRay/main.py \
         --network_file $NETWORK_FILE \
         --input_image $INPUT_IMAGE \
