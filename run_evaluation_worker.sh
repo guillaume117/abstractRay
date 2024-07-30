@@ -6,18 +6,18 @@ NETWORK_FILE="./AbstratRay/src/CNN/simple_cnn_fashionmnist.pth"
 INPUT_IMAGE="./test.jpeg"
 NETWORK_NAME="simplecnn"
 BACK_END="cpu"
-RAM=16
+RAM=1
 RESIZE_INPUT=1
-RESIZE_WIDTH=42
-RESIZE_HEIGHT=42
+RESIZE_WIDTH=224
+RESIZE_HEIGHT=224
 BOX_INPUT=0
-ADD_SYMBOL=0
+ADD_SYMBOL=1
 RELEVANCE_DUMP=0
-NOISE=0.001
-PARRALLEL_REL=1
+NOISE=0.00001
+PARRALLEL_REL=0
 
 
-for NUM_WORKER in {1..1}; do
+for NUM_WORKER in {5..5}; do
     python ./AbstractRay/main.py \
         --network_file $NETWORK_FILE \
         --input_image $INPUT_IMAGE \
