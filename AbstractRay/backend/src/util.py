@@ -141,11 +141,19 @@ def get_largest_tensor_size(tensor1, tensor2):
         tensor2 (torch.sparse.FloatTensor): The second sparse tensor.
 
     Returns:
-        torch.Size: The size of the tensor with the largest first dimension.
+        torch.Size or int: The size of the tensor with the largest first dimension, or 0 if either tensor is None.
     """
+    if tensor1 is None and tensor2 is None:
+        return 0
+    if tensor1 is None:
+        return tensor2.shape
+    if tensor2 is None:
+        return tensor1.shape
+
     size1 = tensor1.shape[0]
     size2 = tensor2.shape[0]
     return tensor1.shape if size1 > size2 else tensor2.shape
+
 
 def sparse_dense_broadcast_mult(sparse_tensor, multiplicative_tensor):
     """

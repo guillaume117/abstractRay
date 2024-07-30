@@ -60,6 +60,9 @@ class ModelEvaluator:
         self.model_cut =model_cut
         self.parallel_rel=parralel_rel
         self.evaluator_rel= None
+        print(self.renew_abstract_domain)
+        if self.parallel_rel== True and self.renew_abstract_domain == True:
+            raise Exception("Cannot renew abstract domain whith full parrallilsm ")
         if self.parallel_rel == True:
             self.evaluator_rel = SparseEvaluationParallel(self.abstract_domain['zonotope'],num_workers=self.num_workers,device=self.device)
             self.abstract_domain['zonotope'] =None
@@ -82,9 +85,10 @@ class ModelEvaluator:
                 "renew_abstract_domain": self.renew_abstract_domain,
                 "verbose": self.verbose,
                 "noise_level": self.noise_level,
-                "num_symbols": self.num_symbols,
+                "num_relevance_symbols": self.num_symbols,
                 "input_tensor_size": self.input_tensor_size_init,
                 "model_last_layer":self.model_cut,
+                "Full parrallisation relevance": self.parallel_rel,
                 "process_ended": False,
             },
             "layers": []
@@ -95,31 +99,19 @@ class ModelEvaluator:
             self.details = details
             start_time = time.time()
 
-            if self.verbose:
-                print('*' * 100)
-                print(f'before layer {self.name}')
-                print(self.abstract_domain['center'].size())
-                print(self.abstract_domain['zonotope'].size())
-                print(self.abstract_domain['sum'].size())
-                print(self.abstract_domain['trash'].size())
-                print(self.abstract_domain['perfect_domain'])
+        
 
             self.abstract_domain = process_layer(self.abstract_domain, self.name, self.details, self.num_workers, self.available_RAM, self.device, self.add_symbol,parallel=self.parallel_rel,evaluator_rel=self.evaluator_rel)
     
-            if self.verbose:
-                print('*' * 100)
-                print(f'after layer {self.name}')
-                print(self.abstract_domain['center'].size())
-                #print(self.abstract_domain['zonotope'].size())
-                print(self.abstract_domain['sum'].size())
-                print(self.abstract_domain['trash'].size())
-                print(self.abstract_domain['perfect_domain'])
-            num_symbols=None
-            nnz=None
+        
+            num_symbols=0
+            nnz=0
             memory_gain_percentage=0
             input_tensor_size=0
             if  self.abstract_domain['zonotope'] is not None:
-                num_symbols = self.abstract_domain['zonotope'].size(0)
+                if not self.parallel_rel:
+                    num_symbols = self.abstract_domain['zonotope'].size(0)-self.num_symbols
+                else:num_symbols = self.abstract_domain['zonotope'].size(0)
                 nnz = self.abstract_domain['zonotope']._nnz()
             
                 non_zero_percentage, memory_gain_percentage = sparse_tensor_stats(self.abstract_domain['zonotope'])
@@ -133,7 +125,7 @@ class ModelEvaluator:
                 "layer_name": self.name,
                 "layer_details": self.details,
                 "input_tensor_size": input_tensor_size,
-                "num_symbols": num_symbols if num_symbols is not None else 0,
+                "num_noise_symbols": num_symbols if num_symbols is not None else 0,
                 "nnz": nnz,
                 "memory_gain_percentage": float(memory_gain_percentage),
                 "computation_time": computation_time,

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import sys
-from AbstractRay.backend.src.process_abstract_maxpool2d_2 import process_max_pool2D
+from AbstractRay.backend.src.process_abstract_maxpool2d_2 import process_max_pool2D, process_max_pool2D_parrallel
 from AbstractRay.backend.src.process_linear_layer import static_process_linear_layer, static_process_linear_layer_parrallel
 from AbstractRay.backend.src.abstract_relu import AbstractReLU
 
@@ -54,15 +54,25 @@ def process_layer(abstract_domain, name, details, num_worker, available_ram, dev
             return abstract_domain
     if activation_layer:
         if activation_layer == 'MaxPool2d':
-            abstract_domain = process_max_pool2D(
-                abstract_domain=abstract_domain,
-                evaluator_rel=evaluator_rel,
-                maxpool_layer=details['activation_function'],
-                num_workers=num_worker,
-                available_ram=available_ram,
-                device=device,
-                add_symbol=add_symbol)
-           
+            if parallel:
+                abstract_domain = process_max_pool2D_parrallel(
+                    abstract_domain=abstract_domain,
+                    evaluator_rel=evaluator_rel,
+                    maxpool_layer=details['activation_function'],
+                    num_workers=num_worker,
+                    available_ram=available_ram,
+                    device=device,
+                    add_symbol=add_symbol)
+                return abstract_domain
+            else : 
+                abstract_domain = process_max_pool2D(
+                    abstract_domain=abstract_domain,
+                    maxpool_layer=details['activation_function'],
+                    num_workers=num_worker,
+                    available_ram=available_ram,
+                    device=device,
+                    add_symbol=add_symbol)
+                
             return abstract_domain
         else:
             class_name = f"Abstract{activation_layer}"

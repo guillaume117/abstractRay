@@ -302,9 +302,11 @@ class SparseWorkerParallel:
             x=(x_1+x_2).coalesce()
             if result_indice is None:
                 self.x_chunk=x
+                return torch.sum(torch.abs(x),dim=0).coalesce().to_dense()
             else :
                 copy_name = f'copy_{result_indice}'
                 setattr(self, copy_name, x)
+                return torch.sum(torch.abs(x),dim=0).coalesce().to_dense()
 
 
     def sub(self,indice_1=None,indice_2=None,result_indice=None):
@@ -321,10 +323,12 @@ class SparseWorkerParallel:
             x=(x_1-x_2).coalesce()
             if result_indice is None:
                 self.x_chunk=x
+                return torch.sum(torch.abs(x),dim=0).coalesce().to_dense()
+
             else :
                 copy_name = f'copy_{result_indice}'
                 setattr(self, copy_name, x)
-
+                return torch.sum(torch.abs(x),dim=0).coalesce().to_dense()
 
     def forward(self,function,mask_epsilon,chunk_size=1,over_copy = False, indice_copy=None):
         """
@@ -339,7 +343,6 @@ class SparseWorkerParallel:
             copy_name = f'copy_{indice_copy}'
             if hasattr(self, copy_name):
                 x = getattr(self, copy_name)
-                print(x.size())
 
         dense_shape = list(x.size())
      
@@ -432,6 +435,7 @@ class SparseEvaluationParallel:
             worker_indices[:, 0] -= chunk_start
 
             worker_values = values[mask]
+          
             worker_size = chunk_end - chunk_start
 
             if worker_indices.size(0) == 0:
@@ -441,6 +445,7 @@ class SparseEvaluationParallel:
                 worker_indices.t(), worker_values,
                 torch.Size([worker_size] + self.dense_shape[1:])
             ).coalesce()
+            
 
 
 
@@ -454,12 +459,15 @@ class SparseEvaluationParallel:
             ray.get(self.workers[i].copy.remote(indice = indice,indice_in=indice_in))
 
     def add(self,indice_1,indice_2,result_indice=None):
+        sum=0
         for i in range(self.num_workers):
-            ray.get(self.workers[i].add.remote(indice_1 = indice_1,indice_2=indice_2,result_indice=result_indice))
+            sum+=ray.get(self.workers[i].add.remote(indice_1 = indice_1,indice_2=indice_2,result_indice=result_indice))
+        return sum
     def sub(self,indice_1,indice_2,result_indice=None):
+        sum =0
         for i in range(self.num_workers):
-            ray.get(self.workers[i].sub.remote(indice_1 = indice_1,indice_2=indice_2,result_indice=result_indice))
-   
+            sum += ray.get(self.workers[i].sub.remote(indice_1 = indice_1,indice_2=indice_2,result_indice=result_indice))
+        return sum
 
     def forward(self, mask: torch.Tensor, function: Callable,chunk_size:int=1,over_copy =False,indice_copy=None):
         tasks = []

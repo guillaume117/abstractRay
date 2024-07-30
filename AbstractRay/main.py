@@ -108,7 +108,7 @@ def main(args):
             with torch.no_grad():
                 output = model(image_tensor)
 
-            # Générer le zonotope
+          
             if not args.box_input:
                 zonotope_espilon_sparse_tensor = ZonoSparseGeneration().zono_from_noise_level_and_tensor(noise_level=args.noise, tensor=image_tensor)
                 messages.append(f"Zonotope generated successfully, dimensions: {zonotope_espilon_sparse_tensor.shape}")
@@ -134,6 +134,7 @@ def main(args):
                 'mask': torch.ones_like(image_tensor),
                 'perfect_domain': True
             }
+            print(args.relevance_dump)
             os.environ["RAY_BACKEND"]=args.back_end
             model_evaluator = ModelEvaluator(
                 unstack_network.output,
@@ -143,7 +144,9 @@ def main(args):
                 device=torch.device(args.back_end),
                 add_symbol=args.add_symbol,
                 json_file_prefix=str(args.network_name),
-                noise_level=args.noise
+                noise_level=args.noise,
+                renew_abstract_domain=args.relevance_dump,
+                parralel_rel=args.parralel_rel
             )
 
             abstract_domain = model_evaluator.evaluate_model()
@@ -166,6 +169,17 @@ def main(args):
     except Exception as e:
         print(f"Error: {str(e)}")
 
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run model evaluations.")
     parser.add_argument("--network_file", type=str, required=False, help="Path to the network file (.onnx, .pt, .pth).")
@@ -175,16 +189,20 @@ if __name__ == "__main__":
     parser.add_argument("--back_end", type=str, required=True, choices=["cpu", "cuda"], help="Backend device.")
     parser.add_argument("--noise", type=float, required=True, help="Noise level.")
     parser.add_argument("--RAM", type=float, required=True, help="Available RAM.")
-    parser.add_argument("--resize_input", type=bool, required=True, help="Whether to resize the input image.")
+    parser.add_argument("--resize_input", type=str2bool, required=True, help="Whether to resize the input image.")
     parser.add_argument("--resize_width", type=int, help="Width to resize the input image to.")
     parser.add_argument("--resize_height", type=int, help="Height to resize the input image to.")
-    parser.add_argument("--box_input", type=bool, required=True, help="Whether to use a bounding box for the input.")
+    parser.add_argument("--box_input", type=str2bool, required=True, help="Whether to use a bounding box for the input.")
     parser.add_argument("--box_x_min", type=int, help="Minimum x value for the bounding box.")
     parser.add_argument("--box_x_max", type=int, help="Maximum x value for the bounding box.")
     parser.add_argument("--box_y_min", type=int, help="Minimum y value for the bounding box.")
     parser.add_argument("--box_y_max", type=int, help="Maximum y value for the bounding box.")
-    parser.add_argument("--add_symbol", type=bool, required=True, help="Whether to add symbols.")
-    parser.add_argument("--relevance_dump", type=bool, required=True, help="Whether to dump relevance information.")
+    parser.add_argument("--add_symbol", type=str2bool, required=True, help="Whether to add symbols.")
+    parser.add_argument("--relevance_dump", type=str2bool, required=True,default=False, help="Whether to dump relevance information.")
     parser.add_argument("--model_last_layer",type=int,required=False,help="You can use this feature to benchmark times of evaluation for the arg first layers of the model")
+    parser.add_argument("--parralel_rel",type=str2bool, required=True, help= "You can choose this option for fully parrallelisation of relevance symbole within worker")
     args = parser.parse_args()
+    print("args relevance dump",   args.relevance_dump)
+    print('args box',args.box_input)
+
     main(args)

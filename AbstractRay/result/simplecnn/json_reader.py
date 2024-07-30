@@ -27,7 +27,7 @@ def process_model_data(json_data):
         f"Renew Abstract Domain: {context.get('renew_abstract_domain', 'N/A')}\n"
         f"Verbose: {context.get('verbose', 'N/A')}\n"
         f"Noise Level: {context.get('noise_level', 'N/A')}\n"
-        f"Num Symbols: {context.get('num_symbols', 'N/A')}\n"
+        f"Num Symbols: {context.get('num_relevance_symbols', 'N/A')}\n"
         f"Process ended:{context.get('process_ended', 'N/A')}\n"
         f"Model cut:{context.get('model_cut','N/A')}"
     )
@@ -47,7 +47,7 @@ def process_model_data(json_data):
         memory_gains.append(memory_gain_percentage)
         
         if add_symbol:
-            num_symbols.append(layer["num_symbols"])
+            num_symbols.append(layer["num_noise_symbols"])
     
     fig, ax1 = plt.subplots(figsize=(14, 8))
     

@@ -117,6 +117,7 @@ def static_process_linear_layer(abstract_domain, function_center, function_epsil
         abstract_domain['trash'] = trash
         abstract_domain['mask'] = torch.ones_like(center)
         abstract_domain['perfect_domain'] = True
+  
 
         return abstract_domain
 
@@ -152,7 +153,7 @@ def static_process_linear_layer_parrallel(evaluator_rel, abstract_domain, functi
         sum_abs = torch.zeros_like(center)
         dim_chunk_val_output = static_dim_chunk(center, available_RAM)
         dim_chunk_val = min(dim_chunk_val_input, dim_chunk_val_output)
-        print(mask_epsilon.size())
+   
 
         if zonotope is not None:
             len_zono = zonotope.size(0)
@@ -169,7 +170,7 @@ def static_process_linear_layer_parrallel(evaluator_rel, abstract_domain, functi
             len_zono= 0
         sum_epsilon_rel = evaluator_rel.forward(function=function_epsilon,
                                                     mask=mask_epsilon,
-                                                    chunk_size=1,
+                                                    chunk_size=dim_chunk_val,
                                                     over_copy=over_copy,
                                                     indice_copy=indice_copy)
         
@@ -192,20 +193,20 @@ def static_process_linear_layer_parrallel(evaluator_rel, abstract_domain, functi
                                                         )
                 new_sparse = evaluator_new_noise.evaluate_all_chunks(num_workers=num_workers)
                 if zonotope is not  None:
-
                     zonotope = torch.sparse_coo_tensor(zonotope.indices(), zonotope.values(), size=new_sparse.size()).coalesce()
                     zonotope += new_sparse
                 else : 
                     zonotope = new_sparse
-                    print(zonotope)
+                    
 
                 trash = static_process_trash_layer(trash, function_trash)
                 trash = torch.zeros_like(trash)
     
         else:
             trash = static_process_trash_layer(trash, function_trash)
+          
         if zonotope is not None:
-            sum_abs = torch.sum(torch.abs(zonotope), dim=0).unsqueeze(0).to_dense() + torch.abs(trash) + sum_epsilon_rel.to_dense()
+            sum_abs = torch.sum(torch.abs(zonotope), dim=0).unsqueeze(0).to_dense() + torch.abs(trash) + sum_epsilon_rel
         else: 
             sum_abs = torch.abs(trash) + sum_epsilon_rel
 
@@ -215,5 +216,6 @@ def static_process_linear_layer_parrallel(evaluator_rel, abstract_domain, functi
         abstract_domain['trash'] = trash
         abstract_domain['mask'] = torch.ones_like(center)
         abstract_domain['perfect_domain'] = True
+       
    
         return abstract_domain
