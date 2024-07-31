@@ -112,6 +112,7 @@ def main(args):
             if not args.box_input:
                 zonotope_espilon_sparse_tensor = ZonoSparseGeneration().zono_from_noise_level_and_tensor(noise_level=args.noise, tensor=image_tensor)
                 messages.append(f"Zonotope generated successfully, dimensions: {zonotope_espilon_sparse_tensor.shape}")
+                print(messages)
             else:
                 zonotope_espilon_sparse_tensor = ZonoSparseGeneration().zono_from_input_noise_level_and_mask(
                     tensor_input=image_tensor,
@@ -134,7 +135,7 @@ def main(args):
                 'mask': torch.ones_like(image_tensor),
                 'perfect_domain': True
             }
-            print(args.relevance_dump)
+           
             os.environ["RAY_BACKEND"]=args.back_end
             model_evaluator = ModelEvaluator(
                 unstack_network.output,

@@ -8,6 +8,9 @@ from tqdm import tqdm
 import os
 import copy
 from ray.util.multiprocessing import Pool
+from multiprocessing import Array,Manager
+import ctypes
+
 
 dtyped = torch.long
 if os.getenv("RAY_BACKEND") == 'cuda':
@@ -17,38 +20,48 @@ else:
     num_gpus = 0
     num_cpus = os.cpu_count()
 
-torch.set_num_threads(1)
+torch.set_num_threads(16)
 
-@ray.remote(num_cpus=num_cpus,num_gpus=num_gpus)
+
+def tensor_to_shared_array(tensor, manager):
+    """Convert a PyTorch tensor to a shared multiprocessing array."""
+    numel = tensor.numel()
+    array = manager.Array('f',[0]* numel)  # 'f' is the typecode for ctypes.c_float
+    shared_tensor = torch.FloatTensor(array).view(tensor.size())
+    shared_tensor.copy_(tensor)
+    return array, shared_tensor
+
+@ray.remote(num_cpus=num_cpus, num_gpus=num_gpus)
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, worker_start_index, output_size, device, verbose=False):
         with torch.no_grad():
-            self.x_chunk = x_chunk.coalesce().to(device)
+            self.manager = Manager()
             self.chunk_size = chunk_size
             self.mask_coef = mask_coef.to(device)
             if isinstance(function, nn.Module):
                 function = function.to(device)
-            self.function = function
+            self.function = function.eval()
             self.dense_shape = dense_shape
             self.worker_start_index = worker_start_index
             self.device = device
             self.output_size = output_size
             self.verbose = verbose
-    
 
+            # Convert x_chunk to a shared array
+            self.x_chunk_indices_array, self.x_chunk_indices_shared = tensor_to_shared_array(x_chunk.indices(), self.manager)
+            self.x_chunk_values_array, self.x_chunk_values_shared = tensor_to_shared_array(x_chunk.values(), self.manager)
 
     def _process_chunk(self, chunk_start, chunk_end):
-
-        indices = self.x_chunk.indices().t()
-        values = self.x_chunk.values()
+        indices = self.x_chunk_indices_shared.t()
+        values = self.x_chunk_values_shared
         mask = (indices[:, 0] >= chunk_start) & (indices[:, 0] < chunk_end)
 
         chunk_indices = indices[mask]
         chunk_indices[:, 0] -= chunk_start
         if chunk_indices.size(0) == 0:
             return torch.tensor(
-            [[]] + [[]] * (len(self.output_size) - 1), dtype=dtyped, device=torch.device('cpu')
-        ),torch.tensor([])
+                [[]] + [[]] * (len(self.output_size) - 1), dtype=dtyped, device=torch.device('cpu')
+            ), torch.tensor([])
 
         chunk_values = values[mask]
         chunk_size = chunk_end - chunk_start
@@ -70,17 +83,15 @@ class SparseWorker:
 
     def evaluate_chunks(self):
         with torch.no_grad():
-            num_chunks = (self.x_chunk.size(0) + self.chunk_size - 1) // self.chunk_size
-        
-            chunk_ranges = [(i * self.chunk_size, min((i + 1) * self.chunk_size, self.x_chunk.size(0))) for i in range(num_chunks)]
-            
-            with Pool(processes=(int(num_cpus))) as pool:
+            num_chunks = (self.x_chunk_indices_shared.size(0) + self.chunk_size - 1) // self.chunk_size
+            chunk_ranges = [(i * self.chunk_size, min((i + 1) * self.chunk_size, self.x_chunk_indices_shared.size(0))) for i in range(num_chunks)]
+
+            with Pool(processes=int(num_cpus)) as pool:
                 results = pool.starmap(self._process_chunk, chunk_ranges)
 
             global_indices, global_values = zip(*results)
             global_indices = torch.cat(global_indices, dim=1)
             global_values = torch.cat(global_values, dim=0)
-
 
         return global_indices, global_values
 
@@ -223,7 +234,7 @@ class SparseEvaluation:
         
             chunk_ranges = [(i * self.chunk_size, min((i + 1) * self.chunk_size, self.x.size(0))) for i in range(num_chunks)]
             with Pool(processes=(int(num_cpus))) as pool:
-                results = pool.starmap(self._process_chunk, chunk_ranges)
+                results = pool.starmap_async(self._process_chunk, chunk_ranges).get(timeout=60)
 
             global_indices,global_values = zip(*results)
             global_indices = torch.cat(global_indices, dim=1)

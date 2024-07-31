@@ -98,12 +98,7 @@ class ModelEvaluator:
             self.name = name
             self.details = details
             start_time = time.time()
-
-        
-
-            self.abstract_domain = process_layer(self.abstract_domain, self.name, self.details, self.num_workers, self.available_RAM, self.device, self.add_symbol,parallel=self.parallel_rel,evaluator_rel=self.evaluator_rel)
-    
-        
+            self.abstract_domain = process_layer(self.abstract_domain, self.name, self.details, self.num_workers, self.available_RAM, self.device, self.add_symbol,parallel=self.parallel_rel,evaluator_rel=self.evaluator_rel) 
             num_symbols=0
             nnz=0
             memory_gain_percentage=0
