@@ -92,13 +92,11 @@ def static_process_linear_layer(abstract_domain, function_center, function_epsil
         if add_symbol and not torch.equal(trash, torch.zeros_like(trash)):
             new_sparse = ZonoSparseGeneration().zono_from_tensor(trash, start_index=len_zono).coalesce()
             if new_sparse is not None:
-                print(f'new_sparse size {new_sparse.size()}')
                 evaluator_new_noise = SparseEvaluation(
                                                         new_sparse,
                                                         chunk_size=dim_chunk_val,
                                                         function=function_epsilon,
                                                         mask_coef=mask_epsilon,
-                                                        eval_start_index=len_zono,
                                                         device=device
                                                         )
                 new_sparse = evaluator_new_noise.evaluate_all_chunks(num_workers=num_workers)
@@ -178,17 +176,17 @@ def static_process_linear_layer_parrallel(evaluator_rel, abstract_domain, functi
          
         
         mask_epsilon = torch.ones_like(mask_epsilon)
-
+     
         if add_symbol and not torch.equal(trash, torch.zeros_like(trash)):
+           
             new_sparse = ZonoSparseGeneration().zono_from_tensor(trash, start_index=len_zono).coalesce()
             if new_sparse is not None:
-                print(f'new_sparse size {new_sparse.size()}')
+    
                 evaluator_new_noise = SparseEvaluation(
                                                         new_sparse,
                                                         chunk_size=dim_chunk_val,
                                                         function=function_epsilon,
                                                         mask_coef=mask_epsilon,
-                                                        eval_start_index=len_zono,
                                                         device=device
                                                         )
                 new_sparse = evaluator_new_noise.evaluate_all_chunks(num_workers=num_workers)

@@ -40,7 +40,7 @@ def process_layer(abstract_domain, name, details, num_worker, available_ram, dev
                 add_symbol=add_symbol
             )
             return abstract_domain
-        if parallel:
+        else:
             abstract_domain = static_process_linear_layer_parrallel(evaluator_rel=evaluator_rel,
                                                                     abstract_domain=abstract_domain,
                                                                     function_center=function_center,

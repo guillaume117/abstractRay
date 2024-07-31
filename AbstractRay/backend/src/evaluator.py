@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import time
+from tabulate import tabulate
 from AbstractRay.backend.src.zono_sparse_gen import ZonoSparseGeneration
 from AbstractRay.backend.src.util import sparse_tensor_stats
 from AbstractRay.backend.src.process_layer import process_layer
@@ -60,7 +61,6 @@ class ModelEvaluator:
         self.model_cut =model_cut
         self.parallel_rel=parralel_rel
         self.evaluator_rel= None
-        print(self.renew_abstract_domain)
         if self.parallel_rel== True and self.renew_abstract_domain == True:
             raise Exception("Cannot renew abstract domain whith full parrallilsm ")
         if self.parallel_rel == True:
@@ -140,7 +140,15 @@ class ModelEvaluator:
                 new_symbs_sparse = new_symbs.to_sparse_coo().coalesce()
                 self.abstract_domain['zonotope'] = ZonoSparseGeneration().zono_from_tensor(new_symbs_sparse).coalesce()
                 self.abstract_domain['trash'] = torch.zeros_like(new_symbs)
-
+            table = [
+                    ["Layer Name", layer_evaluation['layer_name']],
+                    ["Input Tensor Size", layer_evaluation['input_tensor_size']],
+                    ["Number of Noise Symbols", layer_evaluation['num_noise_symbols']],
+                    ["Non-zero Elements (NNZ)", layer_evaluation['nnz']],
+                    ["Memory Gain Percentage", f"{layer_evaluation['memory_gain_percentage']:.2f}%"],
+                    ["Computation Time", f"{layer_evaluation['computation_time']:.6f} seconds"]
+                    ]
+            print(tabulate(table, headers=["Field", "Value"], tablefmt="grid"))
             save_results_to_json(self.timestart, self.json_file_prefix, all_results)
         
         all_results['context']['process_ended'] = True
