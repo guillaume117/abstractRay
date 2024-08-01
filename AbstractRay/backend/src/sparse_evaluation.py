@@ -5,6 +5,7 @@ from typing import Callable
 import torch.nn as nn
 import ray
 from tqdm import tqdm
+from ray.util.multiprocessing import Pool
 import os
 import copy
 
@@ -333,7 +334,55 @@ class SparseWorkerParallel:
                 setattr(self, copy_name, x)
                 return torch.sum(torch.abs(x),dim=0).coalesce().to_dense()
 
+    def _process_chunk(self, chunk_start, chunk_end):
+    
+        if not self.over_copy:
+            x = self.x_chunk
+        else : 
+            copy_name = f'copy_{self.indice_copy}'
+            if hasattr(self, copy_name):
+                x = getattr(self, copy_name)
+
+     
+        indices = x.indices().t()
+        values = x.values()
+        mask = (indices[:, 0] >= chunk_start) & (indices[:, 0] < chunk_end)
+     
+        chunk_indices = indices[mask]
+        chunk_indices[:, 0] -= chunk_start
+        if chunk_indices.size(0) == 0:
+            return torch.tensor(
+            [[]] + [[]] * (len(self.output_size) - 1), dtype=dtyped, device=torch.device('cpu')
+        ),torch.tensor([])
+
+        chunk_values = values[mask]
+        chunk_size = chunk_end - chunk_start
+  
+        chunk_sparse_tensor = torch.sparse_coo_tensor(
+            chunk_indices.t(), chunk_values,
+            torch.Size([chunk_size] + self.dense_shape[1:])
+        ).coalesce()
+
+        chunk_dense_tensor = chunk_sparse_tensor.to_dense().to(self.device)
+
+        func_output = self.function(self.mask_epsilon * chunk_dense_tensor)
+ 
+        func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
+  
+        add_indices = func_output_sparse.indices().to(dtyped) + torch.tensor(
+            [[chunk_start]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=dtyped, device=torch.device('cpu')
+        )
+
+        return add_indices.cpu(), func_output_sparse.values().cpu()
+
     def forward(self,function,mask_epsilon,chunk_size=1,over_copy = False, indice_copy=None):
+
+        self.function = function
+        self.mask_epsilon = mask_epsilon
+        self.chunk_size = chunk_size
+        self.indice_copy=indice_copy
+        self.over_copy=over_copy
+
         """
         Evaluate chunks of the sparse tensor.
 
@@ -347,62 +396,27 @@ class SparseWorkerParallel:
             if hasattr(self, copy_name):
                 x = getattr(self, copy_name)
 
-        dense_shape = list(x.size())
+        self.dense_shape = list(x.size())
      
-        x_0 = torch.zeros(1, *dense_shape[1:])
+        x_0 = torch.zeros(1, *self.dense_shape[1:])
     
         output_size = list(function(x_0).shape)
-        output_size[0] = dense_shape[0]
+        output_size[0] = self.dense_shape[0]
+
 
         with torch.no_grad():
-            indices = x.indices().t()
-            values = x.values()
-
-            global_storage = {
-                'indices': [],
-                'values': []
-            }
-
-            num_chunks = (x.size(0) + chunk_size - 1) // chunk_size
-          
-
-            for i in range(num_chunks):
-                chunk_start = i * chunk_size
-                chunk_end = min((i + 1) * chunk_size, x.size(0))
-                mask = (indices[:, 0] >= chunk_start) & (indices[:, 0] < chunk_end)
-
-                chunk_indices = indices[mask]
-                chunk_indices[:, 0] -= chunk_start
-
-                chunk_values = values[mask]
-                chunk_size = chunk_end - chunk_start
-
-                chunk_sparse_tensor = torch.sparse_coo_tensor(
-                    chunk_indices.t(), chunk_values,
-                    torch.Size([chunk_size] + dense_shape[1:])
-                ).coalesce()
-
-                chunk_dense_tensor = chunk_sparse_tensor.to_dense().to(self.device)
-          
-                func_output = function(mask_epsilon * chunk_dense_tensor)
-           
-
-                func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
-                add_indices = func_output_sparse.indices().to(dtyped) + torch.tensor(
-                    [[chunk_start ]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=torch.long, device=torch.device('cpu')
-                )
-
-                global_storage['indices'].append(add_indices.cpu())
-                global_storage['values'].append(func_output_sparse.values().cpu())
-
-              
-          
-
-     
+            num_chunks = (x.size(0) + self.chunk_size - 1) // self.chunk_size
+        
+            chunk_ranges = [(i * self.chunk_size, min((i + 1) * self.chunk_size, x.size(0))) for i in range(num_chunks)]
 
             
-            global_indices = torch.cat(global_storage['indices'], dim=1)
-            global_values = torch.cat(global_storage['values'], dim=0)
+            with Pool(processes=(int(num_cpus))) as pool:
+                results = pool.starmap(self._process_chunk, chunk_ranges)
+         
+            global_indices, global_values = zip(*results)
+            global_indices = torch.cat(global_indices, dim=1)
+            global_values = torch.cat(global_values, dim=0)
+
         if not over_copy:    
             self.x_chunk = torch.sparse_coo_tensor(global_indices, global_values, size=output_size).coalesce().to('cpu')
             return torch.sum(torch.abs(self.x_chunk),dim=0).coalesce().to_dense()
@@ -411,7 +425,6 @@ class SparseWorkerParallel:
             setattr(self,copy_name,x)
 
             return torch.sum(torch.abs(x),dim=0).coalesce().to_dense()
-    
 
 class SparseEvaluationParallel:
     def __init__(self, x: FloatTensor, num_workers: int, device: torch.device):
