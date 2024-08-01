@@ -20,18 +20,49 @@ else:
     num_gpus = 0
     num_cpus = os.cpu_count()
 
-torch.set_num_threads(16)
+torch.set_num_threads(1)
 
 
 def tensor_to_shared_array(tensor, manager):
     """Convert a PyTorch tensor to a shared multiprocessing array."""
     numel = tensor.numel()
-    array = manager.Array('f',[0]* numel)  # 'f' is the typecode for ctypes.c_float
+    array = manager.Array('f', [0] * numel)  # 'f' is the typecode for ctypes.c_float
     shared_tensor = torch.FloatTensor(array).view(tensor.size())
     shared_tensor.copy_(tensor)
     return array, shared_tensor
 
-@ray.remote(num_cpus=num_cpus, num_gpus=num_gpus)
+def process_chunk(chunk_start, chunk_end, x_chunk_indices_shared, x_chunk_values_shared, mask_coef, function, dense_shape, worker_start_index, device, output_size):
+    indices = x_chunk_indices_shared.t()
+    values = x_chunk_values_shared
+    mask = (indices[:, 0] >= chunk_start) & (indices[:, 0] < chunk_end)
+
+    chunk_indices = indices[mask]
+    chunk_indices[:, 0] -= chunk_start
+    if chunk_indices.size(0) == 0:
+        return torch.tensor(
+            [[]] + [[]] * (len(output_size) - 1), dtype=torch.float32, device=torch.device('cpu')
+        ), torch.tensor([])
+
+    chunk_values = values[mask]
+    chunk_size = chunk_end - chunk_start
+
+    chunk_sparse_tensor = torch.sparse_coo_tensor(
+        chunk_indices.t(), chunk_values,
+        torch.Size([chunk_size] + dense_shape[1:])
+    ).coalesce()
+
+    chunk_dense_tensor = chunk_sparse_tensor.to_dense().to(device)
+
+    func_output = function(mask_coef * chunk_dense_tensor)
+
+    func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
+    add_indices = func_output_sparse.indices().to(torch.long) + torch.tensor(
+        [[chunk_start + worker_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=torch.float32, device=torch.device('cpu')
+    )
+
+    return add_indices.cpu(), func_output_sparse.values().cpu()
+
+@ray.remote(num_cpus=16, num_gpus=0)
 class SparseWorker:
     def __init__(self, x_chunk, chunk_size, mask_coef, function, dense_shape, worker_start_index, output_size, device, verbose=False):
         with torch.no_grad():
@@ -51,49 +82,23 @@ class SparseWorker:
             self.x_chunk_indices_array, self.x_chunk_indices_shared = tensor_to_shared_array(x_chunk.indices(), self.manager)
             self.x_chunk_values_array, self.x_chunk_values_shared = tensor_to_shared_array(x_chunk.values(), self.manager)
 
-    def _process_chunk(self, chunk_start, chunk_end):
-        indices = self.x_chunk_indices_shared.t()
-        values = self.x_chunk_values_shared
-        mask = (indices[:, 0] >= chunk_start) & (indices[:, 0] < chunk_end)
-
-        chunk_indices = indices[mask]
-        chunk_indices[:, 0] -= chunk_start
-        if chunk_indices.size(0) == 0:
-            return torch.tensor(
-                [[]] + [[]] * (len(self.output_size) - 1), dtype=dtyped, device=torch.device('cpu')
-            ), torch.tensor([])
-
-        chunk_values = values[mask]
-        chunk_size = chunk_end - chunk_start
-
-        chunk_sparse_tensor = torch.sparse_coo_tensor(
-            chunk_indices.t(), chunk_values,
-            torch.Size([chunk_size] + self.dense_shape[1:])
-        ).coalesce()
-
-        chunk_dense_tensor = chunk_sparse_tensor.to_dense().to(self.device)
-        func_output = self.function(self.mask_coef * chunk_dense_tensor)
-
-        func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
-        add_indices = func_output_sparse.indices().to(dtyped) + torch.tensor(
-            [[chunk_start + self.worker_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=dtyped, device=torch.device('cpu')
-        )
-
-        return add_indices.cpu(), func_output_sparse.values().cpu()
-
     def evaluate_chunks(self):
         with torch.no_grad():
-            num_chunks = (self.x_chunk_indices_shared.size(0) + self.chunk_size - 1) // self.chunk_size
-            chunk_ranges = [(i * self.chunk_size, min((i + 1) * self.chunk_size, self.x_chunk_indices_shared.size(0))) for i in range(num_chunks)]
 
-            with Pool(processes=int(num_cpus)) as pool:
-                results = pool.starmap(self._process_chunk, chunk_ranges)
+            num_chunks = (self.x_chunk_indices_shared.size(1) + self.chunk_size - 1) // self.chunk_size
+            chunk_ranges = [(i * self.chunk_size, min((i + 1) * self.chunk_size, self.x_chunk_indices_shared.size(1))) for i in range(num_chunks)]
+          
+            pool_args = [(start, end, self.x_chunk_indices_shared, self.x_chunk_values_shared, self.mask_coef, self.function, self.dense_shape, self.worker_start_index, self.device, self.output_size) for start, end in chunk_ranges]
+
+            with Pool(processes=int(16)) as pool:
+                results = pool.starmap(process_chunk, pool_args)
 
             global_indices, global_values = zip(*results)
             global_indices = torch.cat(global_indices, dim=1)
             global_values = torch.cat(global_values, dim=0)
 
         return global_indices, global_values
+    
 
 class SparseEvaluation:
     """
