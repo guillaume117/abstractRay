@@ -28,7 +28,7 @@ class ModelEvaluator:
         timestart (float): Start time of the evaluation process.
     """
 
-    def __init__(self, unstacked_model, abstract_domain, num_workers=0, available_RAM=8, device=torch.device('cpu'), add_symbol=True, renew_abstract_domain=False, verbose=False, json_file_prefix='evaluation_results', noise_level=0.00001,model_cut =False,parralel_rel=True):
+    def __init__(self, unstacked_model, abstract_domain, num_workers=0, available_RAM=8, device=torch.device('cpu'), add_symbol=True, renew_abstract_domain=False, verbose=False, json_file_prefix='evaluation_results', noise_level=0.00001,model_cut =False,parrallel_rel=True):
         """
         Initialize the ModelEvaluator class.
 
@@ -59,7 +59,7 @@ class ModelEvaluator:
         self.num_symbols = abstract_domain['zonotope']._nnz()
         self.input_tensor_size_init = tuple(abstract_domain['center'].size())
         self.model_cut =model_cut
-        self.parallel_rel=parralel_rel
+        self.parallel_rel=parrallel_rel
         self.evaluator_rel= None
         if self.parallel_rel== True and self.renew_abstract_domain == True:
             raise Exception("Cannot renew abstract domain whith full parrallilsm ")
@@ -135,6 +135,8 @@ class ModelEvaluator:
                 new_symbs_sparse = new_symbs.to_sparse_coo().coalesce()
                 self.abstract_domain['zonotope'] = ZonoSparseGeneration().zono_from_tensor(new_symbs_sparse).coalesce()
                 self.abstract_domain['trash'] = torch.zeros_like(new_symbs)
+
+
             table = [
                     ["Layer Name", layer_evaluation['layer_name']],
                     ["Input Tensor Size", layer_evaluation['input_tensor_size']],

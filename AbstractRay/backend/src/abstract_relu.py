@@ -35,10 +35,10 @@ class AbstractReLU(nn.Module):
         mask_epsilon = abstract_domain['mask']
 
         x_center = center.to(device)
-        x_abs = sum.to(device)
+        sum = sum.to(device)
         trash_layer = trash.to(device)
-        x_min = x_center - x_abs
-        x_max = x_center + x_abs
+        x_min = x_center - sum - torch.abs(trash_layer)
+        x_max = x_center + sum + torch.abs(trash_layer)
 
         sgn_min = torch.sign(x_min)
         sgn_max = torch.sign(x_max)
@@ -54,12 +54,12 @@ class AbstractReLU(nn.Module):
         mask_1 = (sgn == 2) + (sgn == 1)
         mask_0 = (sgn == -2) + (sgn == -1)
 
-        mask_center = torch.ones_like(x_center)
-        mask_center[mask_1] = x_center[mask_1]
-        mask_center[mask_p] = coef_approx_linear[mask_p] * x_center[mask_p] + bias_approx_linear[mask_p]
-        mask_center[mask_0] = 0
+        new_center = torch.ones_like(x_center)
+        new_center[mask_1] = x_center[mask_1]
+        new_center[mask_p] = coef_approx_linear[mask_p] * x_center[mask_p] + bias_approx_linear[mask_p]
+        new_center[mask_0] = 0
 
-        mask_epsilon = torch.zeros_like(mask_center)
+        mask_epsilon = torch.zeros_like(x_center)
         mask_epsilon[mask_p] = coef_approx_linear[mask_p]
         mask_epsilon[mask_1] = 1
 
@@ -67,8 +67,7 @@ class AbstractReLU(nn.Module):
         trash_layer[mask_0] = 0
 
        
-        abstract_domain['center'] = mask_center
-        abstract_domain['sum'] = sum
+        abstract_domain['center'] = new_center
         abstract_domain['trash'] = trash_layer.to('cpu')
         abstract_domain['mask'] = mask_epsilon
         abstract_domain['perfect_domain'] = False

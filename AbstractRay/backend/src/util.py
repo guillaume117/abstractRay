@@ -156,27 +156,3 @@ def get_largest_tensor_size(tensor1, tensor2):
     return tensor1.shape if size1 > size2 else tensor2.shape
 
 
-def sparse_dense_broadcast_mult(sparse_tensor, multiplicative_tensor):
-    """
-    Multiply the values of a sparse tensor by the corresponding values of a dense tensor.
-
-    Args:
-        sparse_tensor (torch.sparse.FloatTensor): The input sparse tensor.
-        multiplicative_tensor (torch.Tensor): The dense tensor to multiply with.
-
-    Returns:
-        torch.sparse.FloatTensor: The resulting sparse tensor after multiplication.
-    """
-    assert sparse_tensor.shape[1:] == multiplicative_tensor.shape[1:], "The dimensions of the tensors must be compatible"
-    sparse_indices = sparse_tensor._indices()
-    sparse_values = sparse_tensor._values()
-    new_values = torch.empty_like(sparse_values)
-
-    for i in range(multiplicative_tensor.size(1)):
-        for j in range(multiplicative_tensor.size(2)):
-            for k in range(multiplicative_tensor.size(3)):
-                mask = (sparse_indices[1] == i) & (sparse_indices[2] == j) & (sparse_indices[3] == k)
-                new_values[mask] = sparse_values[mask] * multiplicative_tensor[0, i, j, k]
-
-    new_sparse_tensor = torch.sparse_coo_tensor(sparse_indices, new_values, sparse_tensor.size())
-    return new_sparse_tensor

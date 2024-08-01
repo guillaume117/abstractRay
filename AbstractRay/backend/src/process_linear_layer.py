@@ -105,9 +105,10 @@ def static_process_linear_layer(abstract_domain, function_center, function_epsil
                 trash = static_process_trash_layer(trash, function_trash)
                 trash = torch.zeros_like(trash)
         else:
+
             trash = static_process_trash_layer(trash, function_trash)
 
-        sum_abs = torch.sum(torch.abs(zonotope), dim=0).unsqueeze(0).to_dense() + torch.abs(trash)
+        sum_abs = torch.sum(torch.abs(zonotope), dim=0).unsqueeze(0).to_dense() 
 
         abstract_domain['zonotope'] = zonotope
         abstract_domain['center'] = center
@@ -172,16 +173,11 @@ def static_process_linear_layer_parrallel(evaluator_rel, abstract_domain, functi
                                                     over_copy=over_copy,
                                                     indice_copy=indice_copy)
         
-        
-         
-        
         mask_epsilon = torch.ones_like(mask_epsilon)
-     
+        
         if add_symbol and not torch.equal(trash, torch.zeros_like(trash)):
-           
             new_sparse = ZonoSparseGeneration().zono_from_tensor(trash, start_index=len_zono).coalesce()
             if new_sparse is not None:
-    
                 evaluator_new_noise = SparseEvaluation(
                                                         new_sparse,
                                                         chunk_size=dim_chunk_val,
@@ -204,9 +200,9 @@ def static_process_linear_layer_parrallel(evaluator_rel, abstract_domain, functi
             trash = static_process_trash_layer(trash, function_trash)
           
         if zonotope is not None:
-            sum_abs = torch.sum(torch.abs(zonotope), dim=0).unsqueeze(0).to_dense() + torch.abs(trash) + sum_epsilon_rel
+            sum_abs = torch.sum(torch.abs(zonotope), dim=0).to_dense() + sum_epsilon_rel
         else: 
-            sum_abs = torch.abs(trash) + sum_epsilon_rel
+            sum_abs = sum_epsilon_rel
 
         abstract_domain['zonotope'] = zonotope
         abstract_domain['center'] = center

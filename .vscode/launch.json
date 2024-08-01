@@ -6,10 +6,11 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": " --input_image ./test.jpeg --network_name simplecnn --num_worker 0 --back_end cpu --noise 0.01 --RAM 8.0 --resize_input False --box_input False --add_symbol True --relevance_dump False",
-            "envFile": "${workspaceFolder}/.env"
-        },
-        
+            "args": " --input_image ./test.jpeg --network_name simplecnn --num_worker 1 --back_end cpu --noise 0.001 --RAM 8.0 --resize_input False --box_input False --add_symbol True --relevance_dump False --parrallel_rel False ",
+            "env": {
+                "PYTHONPATH": "/home/guillaume/Documents/AbstratRay"
+                    },
+                }
         
     ]
 }

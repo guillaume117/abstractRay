@@ -31,19 +31,18 @@ def abstract_addition(abstract_domain_1, abstract_domain_2):
 
     center_1 += center_2
     trash_1 = torch.abs(trash_1) + torch.abs(trash_2)
-    abstract_domain_1['sum'] = trash_1
     abstract_domain_1['center']=center_1
     abstract_domain_1['trash']=trash_1
 
     if zonotope_1 is None and zonotope_2 is None:
         return abstract_domain_1  
     if zonotope_1 is not None and zonotope_2 is None:
-        abstract_domain_1['sum']+= torch.sum(torch.abs(zonotope_1), dim=0).unsqueeze(0).to_dense()
+        abstract_domain_1['sum'] = torch.sum(torch.abs(zonotope_1), dim=0).unsqueeze(0).to_dense()
         abstract_domain_1['zonotope']=zonotope_1
         return abstract_domain_1
     if zonotope_2 is not None and zonotope_1 is None:
-        abstract_domain_1['sum']+= torch.sum(torch.abs(zonotope_2), dim=0).unsqueeze(0).to_dense()
-        abstract_domain_1['zonotope']=zonotope_2
+        abstract_domain_1['sum'] = torch.sum(torch.abs(zonotope_2), dim=0).unsqueeze(0).to_dense()
+        abstract_domain_1['zonotope']= zonotope_2
         return abstract_domain_1
 
     dimask = get_largest_tensor_size(zonotope_1, zonotope_2)
@@ -52,15 +51,10 @@ def abstract_addition(abstract_domain_1, abstract_domain_2):
     zonotope_2 = torch.sparse_coo_tensor(zonotope_2.indices(), zonotope_2.values(), size=dimask)
     zonotope_1 = (zonotope_1 + zonotope_2).coalesce()
 
-    abstract_domain_1['sum'] += torch.sum(torch.abs(zonotope_1), dim=0).unsqueeze(0).to_dense()
-   
-
+    abstract_domain_1['sum'] = torch.sum(torch.abs(zonotope_1), dim=0).to_dense()
     abstract_domain_1['zonotope'] = zonotope_1
-    abstract_domain_1['center'] = center_1
-    
-    abstract_domain_1['trash'] = trash_1
+ 
     abstract_domain_1['mask'] = torch.ones_like(center_1)
-    abstract_domain_1['perfect_domain'] = True
 
     return abstract_domain_1
 
@@ -90,17 +84,16 @@ def abstract_substraction(abstract_domain_1, abstract_domain_2):
     trash_2 = abstract_domain_2['trash']
     center_1 -= center_2
     trash_1 = torch.abs(trash_1) + torch.abs(trash_2)
-    abstract_domain_1['sum'] = trash_1
     abstract_domain_1['center']=center_1
     abstract_domain_1['trash'] = trash_1
     if zonotope_1 is None and zonotope_2 is None:
-        return abstract_domain_1  # Or handle this case as you see fit
+        return abstract_domain_1 
     if zonotope_1 is not None and zonotope_2 is None:
-        abstract_domain_1['sum']+= torch.sum(torch.abs(zonotope_1), dim=0).unsqueeze(0).to_dense()
+        abstract_domain_1['sum']= torch.sum(torch.abs(zonotope_1), dim=0).unsqueeze(0).to_dense()
         abstract_domain_1['zonotope']=zonotope_1
         return abstract_domain_1
     if zonotope_2 is not None and zonotope_1 is None:
-        abstract_domain_1['sum']+= torch.sum(torch.abs(zonotope_2), dim=0).unsqueeze(0).to_dense()
+        abstract_domain_1['sum']= torch.sum(torch.abs(zonotope_2), dim=0).unsqueeze(0).to_dense()
         abstract_domain_1['zonotope']=-zonotope_2
         return abstract_domain_1
 
@@ -110,15 +103,12 @@ def abstract_substraction(abstract_domain_1, abstract_domain_2):
     zonotope_2 = torch.sparse_coo_tensor(zonotope_2.indices(), zonotope_2.values(), size=dimask)
     zonotope_1 = (zonotope_1 - zonotope_2).coalesce()
 
-    abstract_domain_1['sum'] += torch.sum(torch.abs(zonotope_1), dim=0).unsqueeze(0).to_dense()
+    abstract_domain_1['sum'] = torch.sum(torch.abs(zonotope_1), dim=0).to_dense()
     
 
     abstract_domain_1['zonotope'] = zonotope_1
     abstract_domain_1['center'] = center_1
- 
-    abstract_domain_1['trash'] = trash_1
     abstract_domain_1['mask'] = torch.ones_like(center_1)
-    abstract_domain_1['perfect_domain'] = True
 
     return abstract_domain_1
 
@@ -187,65 +177,70 @@ def process_max_pool2D(abstract_domain, maxpool_layer, num_workers, available_ra
         w_3 = torch.tensor([[[[0., 0.], [1., 0.]]]]).expand(dim_x, -1, -1, -1)
 
         conv_0.weight.data = w_0
-        conv_0.bias.data = torch.zeros(dim_x)
+        conv_0.bias.zero_()
         conv_1.weight.data = w_1
-        conv_1.bias.data = torch.zeros(dim_x)
+        conv_1.bias.zero_()
         conv_2.weight.data = w_2
-        conv_2.bias.data = torch.zeros(dim_x)
+        conv_2.bias.zero_()
         conv_3.weight.data = w_3
-        conv_3.bias.data = torch.zeros(dim_x)
+        conv_3.bias.zero_()
+        
+        conv_0_t =copy.deepcopy(conv_0)
+        conv_0_t.weight.abs_()
+        conv_1_t =copy.deepcopy(conv_1)
+        conv_1_t.weight.abs_()
+        conv_2_t =copy.deepcopy(conv_2)
+        conv_2_t.weight.abs_()
+        conv_3_t =copy.deepcopy(conv_3)
+        conv_3_t.weight.abs_()
 
         ident = nn.Identity()
 
         abstract_domain_1 = static_process_linear_layer(copy.deepcopy(abstract_domain),
-                                                        conv_0, conv_0, conv_0,
+                                                        conv_0, conv_0, conv_0_t,
                                                         num_workers, available_ram, device, add_symbol)
      
-
         abstract_domain_1 = AbstractReLU.evaluate(abstract_domain_1)
-
         abstract_domain_1 = static_process_linear_layer(abstract_domain_1,
                                                         ident, ident, ident,
                                                         num_workers, available_ram, device, add_symbol)
-       
         resize_dim_1(abstract_domain_1, abstract_domain)
 
+
         abstract_domain_2 = static_process_linear_layer(copy.deepcopy(abstract_domain),
-                                                        conv_1, conv_1, conv_1,
+                                                        conv_1, conv_1, conv_1_t,
                                                         num_workers, available_ram, device, add_symbol)
 
         abstract_domain_1 = abstract_addition(abstract_domain_1, abstract_domain_2)
   
         abstract_domain_2 = static_process_linear_layer(copy.deepcopy(abstract_domain),
-                                                        conv_2, conv_2, conv_2,
+                                                        conv_2, conv_2, conv_2_t,
                                                         num_workers, available_ram, device, add_symbol)
-    
-
         abstract_domain_2 = abstract_substraction(abstract_domain_2, abstract_domain_1)
       
-        abstract_domain_3 = AbstractReLU.evaluate(abstract_domain_2)
+        abstract_domain_2 = AbstractReLU.evaluate(abstract_domain_2)
+
+        abstract_domain_2 = static_process_linear_layer(abstract_domain_2,
+                                                        ident, ident, ident,
+                                                        num_workers, available_ram, device, add_symbol)
+        resize_dim_1(abstract_domain_2, abstract_domain)
+
+        abstract_domain_2 = abstract_addition(abstract_domain_1, abstract_domain_2)
+
+        abstract_domain_3 = static_process_linear_layer(copy.deepcopy(abstract_domain),
+                                                        conv_3, conv_3, conv_3_t,
+                                                        num_workers, available_ram, device, add_symbol)
+        abstract_domain_3 = abstract_substraction(abstract_domain_3, abstract_domain_2)
+
+        abstract_domain_3 = AbstractReLU.evaluate(abstract_domain_3)
 
         abstract_domain_3 = static_process_linear_layer(abstract_domain_3,
                                                         ident, ident, ident,
                                                         num_workers, available_ram, device, add_symbol)
         resize_dim_1(abstract_domain_3, abstract_domain)
+        abstract_domain = abstract_addition(abstract_domain_2, abstract_domain_3)
 
-        abstract_domain_3 = abstract_addition(abstract_domain_1, abstract_domain_3)
-
-        abstract_domain_2 = static_process_linear_layer(copy.deepcopy(abstract_domain),
-                                                        conv_3, conv_3, conv_3,
-                                                        num_workers, available_ram, device, add_symbol)
-        abstract_domain_2 = abstract_substraction(abstract_domain_2, abstract_domain_3)
-
-        abstract_domain_4 = AbstractReLU.evaluate(abstract_domain_2)
-
-        abstract_domain_4 = static_process_linear_layer(abstract_domain_4,
-                                                        ident, ident, ident,
-                                                        num_workers, available_ram, device, add_symbol)
-
-        abstract_domain_4 = abstract_addition(abstract_domain_3, abstract_domain_4)
-
-        return abstract_domain_4
+        return abstract_domain
 
 
 def process_max_pool2D_parrallel(abstract_domain, evaluator_rel, maxpool_layer, num_workers, available_ram, device, add_symbol):
@@ -301,77 +296,76 @@ def process_max_pool2D_parrallel(abstract_domain, evaluator_rel, maxpool_layer, 
         conv_3.weight.data = w_3
         conv_3.bias.data = torch.zeros(dim_x)
 
+        
+        conv_0_t =copy.deepcopy(conv_0)
+        conv_0_t.weight.abs_()
+        conv_1_t =copy.deepcopy(conv_1)
+        conv_1_t.weight.abs_()
+        conv_2_t =copy.deepcopy(conv_2)
+        conv_2_t.weight.abs_()
+        conv_3_t =copy.deepcopy(conv_3)
+        conv_3_t.weight.abs_()
         ident = nn.Identity()
 
         evaluator_rel.copy(indice=1)
         abstract_domain_1 = static_process_linear_layer_parrallel(evaluator_rel,copy.deepcopy(abstract_domain),
-                                                        conv_0, conv_0, conv_0,
+                                                        conv_0, conv_0, conv_0_t,
                                                    num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=1)
-
-     
+        
         abstract_domain_1 = AbstractReLU.evaluate(abstract_domain_1)
-
-
         abstract_domain_1 = static_process_linear_layer_parrallel(evaluator_rel,abstract_domain_1,
                                                         ident, ident, ident,
                                                         num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=1)
 
 
         resize_dim_1(abstract_domain_1, abstract_domain)
-     
 
+        
         evaluator_rel.copy(indice=2)
         abstract_domain_2 = static_process_linear_layer_parrallel(evaluator_rel,copy.deepcopy(abstract_domain),
-                                                        conv_1, conv_1, conv_1,
+                                                        conv_1, conv_1, conv_1_t,
                                                         num_workers, available_ram, device, add_symbol,over_copy=True, indice_copy=2)
-        
-
         abstract_domain_1 = abstract_addition(abstract_domain_1, abstract_domain_2)
-
         abstract_domain_1['sum'] +=evaluator_rel.add(indice_1=1,indice_2=2,result_indice=1)
+
        
         
         evaluator_rel.copy(indice=2)
         abstract_domain_2 = static_process_linear_layer_parrallel(evaluator_rel,copy.deepcopy(abstract_domain),
-                                                        conv_2, conv_2, conv_2,
+                                                        conv_2, conv_2, conv_2_t,
                                                         num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=2)
-    
-
         abstract_domain_2 = abstract_substraction(abstract_domain_2, abstract_domain_1)
        
         abstract_domain_2['sum'] += evaluator_rel.sub(indice_1=2,indice_2=1,result_indice=2)
 
-
         abstract_domain_2 = AbstractReLU.evaluate(abstract_domain_2)
-        
-
         abstract_domain_2 = static_process_linear_layer_parrallel(evaluator_rel,abstract_domain_2,
                                                         ident, ident, ident,
                                                         num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=2)
-
 
         resize_dim_1(abstract_domain_2, abstract_domain)
 
        
-
-        abstract_domain_3 = abstract_addition(abstract_domain_1, abstract_domain_2)
+        abstract_domain_2 = abstract_addition(abstract_domain_1, abstract_domain_2)
         
-        abstract_domain_3['sum']+=evaluator_rel.add(indice_1=1,indice_2=2,result_indice=3)
-        evaluator_rel.copy(indice=2)
-        abstract_domain_2 = static_process_linear_layer_parrallel(evaluator_rel,copy.deepcopy(abstract_domain),
-                                                        conv_3, conv_3, conv_3,
-                                                        num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=2)
+        abstract_domain_2['sum']+=evaluator_rel.add(indice_1=1,indice_2=2,result_indice=2)
         
-        abstract_domain_2 = abstract_substraction(abstract_domain_2, abstract_domain_3)
-        abstract_domain_2['sum'] += evaluator_rel.sub(indice_1=2,indice_2=3,result_indice=2)
-        abstract_domain_2 = AbstractReLU.evaluate(abstract_domain_2)
+        evaluator_rel.copy(indice=3)
+        abstract_domain_3 = static_process_linear_layer_parrallel(evaluator_rel,copy.deepcopy(abstract_domain),
+                                                        conv_3, conv_3, conv_3_t,
+                                                        num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=3)
+        
+        abstract_domain_3 = abstract_substraction(abstract_domain_3, abstract_domain_2)
+        abstract_domain_3['sum'] += evaluator_rel.sub(indice_1=3,indice_2=2,result_indice=3)
+        abstract_domain_3 = AbstractReLU.evaluate(abstract_domain_3)
 
 
 
-        abstract_domain_2 = static_process_linear_layer_parrallel(evaluator_rel,abstract_domain_2,
+        abstract_domain_3 = static_process_linear_layer_parrallel(evaluator_rel,abstract_domain_3,
                                                         ident, ident, ident,
                                                         num_workers, available_ram, device, add_symbol,over_copy=True,indice_copy=2)
 
+        resize_dim_1(abstract_domain_3, abstract_domain)
         abstract_domain = abstract_addition(abstract_domain_3, abstract_domain_2)
         abstract_domain['sum']+=evaluator_rel.add(indice_1=3,indice_2=2)
 

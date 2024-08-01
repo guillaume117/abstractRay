@@ -278,6 +278,7 @@ class UnStackNetwork:
                     if isinstance(sublayer, (nn.Linear, nn.Conv2d)):
                         if sublayer.bias is not None:
                             sublayer.bias.zero_()
+            
             return new_layer
 
     def copy_with_abs_weights(self, layer):

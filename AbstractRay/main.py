@@ -112,7 +112,6 @@ def main(args):
             if not args.box_input:
                 zonotope_espilon_sparse_tensor = ZonoSparseGeneration().zono_from_noise_level_and_tensor(noise_level=args.noise, tensor=image_tensor)
                 messages.append(f"Zonotope generated successfully, dimensions: {zonotope_espilon_sparse_tensor.shape}")
-                print(messages)
             else:
                 zonotope_espilon_sparse_tensor = ZonoSparseGeneration().zono_from_input_noise_level_and_mask(
                     tensor_input=image_tensor,
@@ -135,7 +134,7 @@ def main(args):
                 'mask': torch.ones_like(image_tensor),
                 'perfect_domain': True
             }
-           
+            print(args.relevance_dump)
             os.environ["RAY_BACKEND"]=args.back_end
             model_evaluator = ModelEvaluator(
                 unstack_network.output,
@@ -147,7 +146,7 @@ def main(args):
                 json_file_prefix=str(args.network_name),
                 noise_level=args.noise,
                 renew_abstract_domain=args.relevance_dump,
-                parralel_rel=args.parralel_rel
+                parrallel_rel=args.parrallel_rel
             )
 
             abstract_domain = model_evaluator.evaluate_model()
@@ -157,8 +156,8 @@ def main(args):
                 "argmax": argmax.tolist(),
                 "true": model(image_tensor).squeeze(0)[argmax].tolist(),
                 "center": abstract_domain['center'].squeeze(0)[argmax].tolist(),
-                "min": (abstract_domain['center'].squeeze(0)[argmax] - abstract_domain['sum'].squeeze(0)[argmax]).tolist(),
-                "max": (abstract_domain['center'].squeeze(0)[argmax] + abstract_domain['sum'].squeeze(0)[argmax]).tolist(),
+                "min": (abstract_domain['center'].squeeze(0)[argmax] - abstract_domain['sum'].squeeze(0)[argmax]-abstract_domain['trash'].squeeze(0)[argmax]).tolist(),
+                "max": (abstract_domain['center'].squeeze(0)[argmax] + abstract_domain['sum'].squeeze(0)[argmax]+abstract_domain['trash'].squeeze(0)[argmax]).tolist(),
                 "diff_center_true": torch.max(model(image_tensor) - abstract_domain['center']).item()
             }
 
@@ -174,9 +173,9 @@ def main(args):
 def str2bool(v):
     if isinstance(v, bool):
         return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+    if v.lower() in ('True','yes', 'true', 't', 'y', '1'):
         return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+    elif v.lower() in ('False','no', 'false', 'f', 'n', '0'):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
@@ -201,7 +200,7 @@ if __name__ == "__main__":
     parser.add_argument("--add_symbol", type=str2bool, required=True, help="Whether to add symbols.")
     parser.add_argument("--relevance_dump", type=str2bool, required=True,default=False, help="Whether to dump relevance information.")
     parser.add_argument("--model_last_layer",type=int,required=False,help="You can use this feature to benchmark times of evaluation for the arg first layers of the model")
-    parser.add_argument("--parralel_rel",type=str2bool, required=True, help= "You can choose this option for fully parrallelisation of relevance symbole within worker")
+    parser.add_argument("--parrallel_rel",type=str2bool, required=True, help= "You can choose this option for fully parrallelisation of relevance symbole within worker")
     args = parser.parse_args()
     print("args relevance dump",   args.relevance_dump)
     print('args box',args.box_input)
