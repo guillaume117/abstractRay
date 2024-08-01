@@ -151,7 +151,7 @@ class ModelEvaluator:
         all_results['context']['process_ended'] = True
         save_results_to_json(self.timestart, self.json_file_prefix, all_results)
         
-        return self.abstract_domain
+        return self.abstract_domain,all_results
 
   
 """

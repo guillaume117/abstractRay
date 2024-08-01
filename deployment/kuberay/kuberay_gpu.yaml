@@ -1,119 +1,32 @@
-# An unique identifier for the head node and workers of this cluster.
-cluster_name: abstract-ray-cluster
+# Nom du cluster
+cluster_name: "default"
 
-# The maximum number of workers nodes to launch in addition to the head
-# node
-max_workers: 4
-
-# The autoscaler will scale up the cluster faster with higher upscaling speed.
-# E.g., if the task requires adding more nodes then autoscaler will gradually
-# scale up the cluster in chunks of upscaling_speed*currently_running_nodes.
-# This number should be > 0.
-upscaling_speed: 5
-
-# This executes all commands on all nodes in the docker container,
-# and opens all the necessary ports to support the Ray cluster.
-# Empty string means disabled.
-docker:
-  image: "rayproject/ray-ml:latest" # Using the latest image with GPU support
-  container_name: "ray_container"
-  pull_before_run: True
-  run_options:
-    - --ulimit nofile=65536:65536
-
-idle_timeout_minutes: 5
+# Adresses des nœuds principaux et secondaires
 
 provider:
-    type: gcp
-    region: europe-west4
-    availability_zone: europe-west4-a
-    project_id: hpcberthelot24
+    type: local
+    head_ip: "research-user@glycine"
+    # You may need to supply a public ip for the head node if you need
+    # to run `ray up` from outside of the Ray cluster's network
+    # (e.g. the cluster is in an AWS VPC and you're starting ray from your laptop)
+    # This is useful when debugging the local node provider with cloud VMs.
+    # external_head_ip: YOUR_HEAD_PUBLIC_IP
+    worker_ips: [""]
 
 auth:
-    ssh_user: ubuntu
+    ssh_user: "guillaume@lychee"
+    ssh_private_key: ~/.ssh/id_rsa-GITLAB 
 
-available_node_types:
-    ray_head_default:
-        resources: {"CPU": 48, "memory": 206158430208, "GPU": 4}  # 48 CPUs, 192 GB of memory, and 4 GPUs
-        node_config:
-            machineType: g2-standard-48
-            disks:
-              - boot: true
-                autoDelete: true
-                type: PERSISTENT
-                initializeParams:
-                  diskSizeGb: 200
-                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-gpu
-            networkInterfaces:
-              - network: global/networks/default
-                accessConfigs:
-                  - name: External NAT
-                    type: ONE_TO_ONE_NAT
-                    # To allow external HTTP(S) traffic to reach the instances.
-                    natIP: # If you have a static IP, you can specify it here.
-    ray_worker_large:
-        min_workers: 4
-        max_workers: 4
-        resources: {"CPU": 48, "memory": 206158430208, "GPU": 4}  # 48 CPUs, 192 GB of memory, and 4 GPUs
-        node_config:
-            machineType: g2-standard-48
-            disks:
-              - boot: true
-                autoDelete: true
-                type: PERSISTENT
-                initializeParams:
-                  diskSizeGb: 200
-                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-gpu
-            scheduling:
-              - preemptible: true
+# Commandes d'installation de Ray sur les nœuds
+setup_commands:
+  - pip install ray
 
-head_node_type: ray_head_default
-file_mounts: {
-"/home/ubuntu/AbstractRay": "/home/guiberthelot/AbstractRay"
-}
-
-cluster_synced_files: []
-
-file_mounts_sync_continuously: False
-
-rsync_exclude:
-    - "**/.git"
-    - "**/.git/**"
-
-rsync_filter:
-    - ".gitignore"
-
-initialization_commands: []
-
-setup_commands: []
-
-head_setup_commands:
-  - pip install google-api-python-client==1.7.8
-  - pip install -r ../ubuntu/AbstractRay/AbstractRay/backend/requirements.txt
-
-worker_setup_commands: 
-  - pip install google-api-python-client==1.7.8
-  - pip install -r ../ubuntu/AbstractRay/AbstractRay/backend/requirements.txt
-
+# Commande pour démarrer le nœud principal
 head_start_ray_commands:
-    - export RAY_memory_usage_threshold=1
-    - export RAY_memory_monitor_refresh_ms=0
-    - export NUMEXPR_MAX_THREADS=48
-    - ray stop
-    - >-
-      ray start
-      --head
-      --port=6379
-      --object-manager-port=8076
-      --autoscaling-config=~/ray_bootstrap_config.yaml
-      --dashboard-host=0.0.0.0
+  - ray stop
+  - ulimit -n 65536; ray start --head --port=6379 --redis-password='5241590000000000'
 
+# Commande pour démarrer les nœuds secondaires
 worker_start_ray_commands:
-    - export RAY_memory_usage_threshold=1
-    - export RAY_memory_monitor_refresh_ms=0
-    - export NUMEXPR_MAX_THREADS=48
-    - ray stop
-    - >-
-      ray start
-      --address=$RAY_HEAD_IP:6379
-      --object-manager-port=8076
+  - ray stop
+  - ulimit -n 65536; ray start --address='head_node_ip:6379' --redis-password='5241590000000000'

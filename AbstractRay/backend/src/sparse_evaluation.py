@@ -273,7 +273,7 @@ class SparseEvaluation:
     
 
 
-@ray.remote
+@ray.remote(num_cpus=num_cpus,num_gpus=num_gpus)
 class SparseWorkerParallel:
     def __init__(self, x_chunk, device):
         self.x_chunk = x_chunk.to(device)
