@@ -9,7 +9,7 @@ onnx
 onnx2torch
 pillow
 tabulate
-
+matplotlib
 #Streamlit requirements
 
 fastapi
