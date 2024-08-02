@@ -3,7 +3,7 @@
 torch==2.3.0
 torchvision
 numpy
-ray==2.24.0
+ray==2.31.0
 tqdm
 onnx
 onnx2torch

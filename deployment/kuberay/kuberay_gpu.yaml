@@ -14,7 +14,7 @@ provider:
     worker_ips: [""]
 
 auth:
-    ssh_user: "guillaume@lychee"
+    ssh_user: Guillaume BERTHELOT
     ssh_private_key: ~/.ssh/id_rsa-GITLAB 
 
 # Commandes d'installation de Ray sur les nœuds

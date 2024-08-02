@@ -18,7 +18,7 @@ else:
     num_gpus = 0
     num_cpus = os.cpu_count()
 
-@ray.remote(num_cpus=num_cpus,num_gpus=num_gpus)
+@ray.remote(num_cpus=32,num_gpus=0,resources={"worker": 2})
 class SparseWorker:
     """
     A worker class to evaluate chunks of a sparse tensor using Ray for parallel computation.
@@ -273,7 +273,7 @@ class SparseEvaluation:
     
 
 
-@ray.remote(num_cpus=num_cpus,num_gpus=num_gpus)
+@ray.remote(num_cpus=16,num_gpus=0,resources={"worker": 1})
 class SparseWorkerParallel:
     def __init__(self, x_chunk, device):
         self.x_chunk = x_chunk.to(device)

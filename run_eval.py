@@ -1,6 +1,8 @@
 import subprocess
 import sys
 import os
+import json
+import glob
 
 def execute_script(script_path):
     # Vérifie si le fichier existe
@@ -19,10 +21,25 @@ def execute_script(script_path):
     try:
         # Exécute le script en capturant la sortie
         result = subprocess.run(['bash', script_path], check=True, capture_output=True, text=True)
+        # Affiche la sortie du script
         print("Sortie du script :\n", result.stdout)
         if result.stderr:
             print("Erreurs du script :\n", result.stderr)
-        return result.stdout
+
+        # Lecture du fichier JSON généré par le script shell
+        json_file_prefix = 'simplecnn'  # Le préfixe que tu utilises dans save_results_to_json
+        result_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'AbstractRay', 'result', json_file_prefix)
+        json_files = glob.glob(os.path.join(result_folder, '*.json'))
+        if json_files:
+            # Suppose que le fichier le plus récent est celui que nous venons de créer
+            latest_json_file = max(json_files, key=os.path.getctime)
+            with open(latest_json_file, 'r') as file:
+                json_output = json.load(file)
+            return json_output
+        else:
+            print("Aucun fichier JSON trouvé.")
+            return None
+
     except subprocess.CalledProcessError as e:
         print(f"Erreur lors de l'exécution du script {script_path}: {e}")
         print(f"Sortie standard :\n{e.stdout}")
@@ -36,4 +53,8 @@ if __name__ == "__main__":
         script_path = sys.argv[1]
         output = execute_script(script_path)
         if output is not None:
-            print(output)
+            if isinstance(output, dict):
+                print("La sortie JSON du script est :")
+                print(json.dumps(output, indent=4))
+            else:
+                print("La sortie brute du script est :\n", output)

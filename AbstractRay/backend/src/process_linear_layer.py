@@ -164,7 +164,7 @@ def static_process_linear_layer_parrallel(evaluator_rel, abstract_domain, functi
                                         device=device
                                         )
 
-            zonotope = evaluator.evaluate_all_chunks(num_workers=num_workers)
+            zonotope = evaluator.evaluate_all_chunks(num_workers=2)
         else: 
             len_zono= 0
         sum_epsilon_rel = evaluator_rel.forward(function=function_epsilon,
@@ -185,7 +185,7 @@ def static_process_linear_layer_parrallel(evaluator_rel, abstract_domain, functi
                                                         mask_coef=mask_epsilon,
                                                         device=device
                                                         )
-                new_sparse = evaluator_new_noise.evaluate_all_chunks(num_workers=num_workers)
+                new_sparse = evaluator_new_noise.evaluate_all_chunks(num_workers=2)
                 if zonotope is not  None:
                     zonotope = torch.sparse_coo_tensor(zonotope.indices(), zonotope.values(), size=new_sparse.size()).coalesce()
                     zonotope += new_sparse

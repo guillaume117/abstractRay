@@ -149,7 +149,7 @@ def main(args):
                 parrallel_rel=args.parrallel_rel
             )
 
-            abstract_domain,result = model_evaluator.evaluate_model()
+            abstract_domain = model_evaluator.evaluate_model()
             argmax = torch.topk(model(image_tensor).squeeze(0), 10).indices
 
             response = {
@@ -169,7 +169,6 @@ def main(args):
     except Exception as e:
         print(f"Error: {str(e)}")
     
-    print(result)
 
 
 def str2bool(v):
