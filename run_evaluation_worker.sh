@@ -7,17 +7,17 @@ INPUT_IMAGE="./test.jpeg"
 NETWORK_NAME="simplecnn"
 BACK_END="cpu"
 RAM=0.5
-RESIZE_INPUT=0
-RESIZE_WIDTH=112
-RESIZE_HEIGHT=112
+RESIZE_INPUT=1
+RESIZE_WIDTH=224        
+RESIZE_HEIGHT=224
 BOX_INPUT=0
-ADD_SYMBOL=1
+ADD_SYMBOL=0
 RELEVANCE_DUMP=0
 NOISE=0.00001
 PARRALLEL_REL=0
 
 
-for NUM_WORKER in {0..0}; do
+for NUM_WORKER in {2..2}; do
     python ./AbstractRay/main.py \
         --network_file $NETWORK_FILE \
         --input_image $INPUT_IMAGE \
