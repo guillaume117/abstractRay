@@ -73,7 +73,7 @@ class SparseWorker:
         func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
   
         add_indices = func_output_sparse.indices().to(dtyped) + torch.tensor(
-            [[chunk_start]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=dtyped, device=torch.device('cpu')
+            [[chunk_start+self.worker_start_index]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=dtyped, device=torch.device('cpu')
         )
 
         return add_indices.cpu(), func_output_sparse.values().cpu()
@@ -100,9 +100,11 @@ class SparseWorker:
             with Pool(processes=(int(num_cpus))) as pool:
                 results = pool.starmap(self._process_chunk, chunk_ranges)
             results =[result for result in results if result is not None]
+            
 
-         
+
             global_indices, global_values = zip(*results)
+            
             global_indices = torch.cat(global_indices, dim=1)
             global_values = torch.cat(global_values, dim=0)
             return global_indices, global_values
