@@ -45,6 +45,67 @@ class SparseWorker:
             self.worker_start_index = worker_start_index
             self.device = device
             self.verbose = verbose
+    def _process_chunk(self, chunk_start, chunk_end):
+    
+      
+
+        indices = self.x_chunk.indices().t()
+        values = self.x_chunk.values()
+        mask = (indices[:, 0] >= chunk_start) & (indices[:, 0] < chunk_end)
+     
+        chunk_indices = indices[mask]
+        chunk_indices[:, 0] -= chunk_start
+        if chunk_indices.size(0) == 0:
+            return 
+
+        chunk_values = values[mask]
+        chunk_size = chunk_end - chunk_start
+  
+        chunk_sparse_tensor = torch.sparse_coo_tensor(
+            chunk_indices.t(), chunk_values,
+            torch.Size([chunk_size] + self.dense_shape[1:])
+        ).coalesce()
+
+        chunk_dense_tensor = chunk_sparse_tensor.to_dense().to(self.device)
+
+        func_output = self.function(self.mask_coef * chunk_dense_tensor)
+ 
+        func_output_sparse = func_output.to_sparse().to('cpu').coalesce()
+  
+        add_indices = func_output_sparse.indices().to(dtyped) + torch.tensor(
+            [[chunk_start]] + [[0]] * (func_output_sparse.indices().size(0) - 1), dtype=dtyped, device=torch.device('cpu')
+        )
+
+        return add_indices.cpu(), func_output_sparse.values().cpu()
+
+    def forward(self):
+
+        
+
+        """
+        Evaluate chunks of the sparse tensor.
+
+        Returns:
+            tuple: Indices and values of the evaluated sparse tensor.
+        """
+     
+
+
+        with torch.no_grad():
+            num_chunks = (self.x_chunk.size(0) + self.chunk_size - 1) // self.chunk_size
+        
+            chunk_ranges = [(i * self.chunk_size, min((i + 1) * self.chunk_size, self.x_chunk.size(0))) for i in range(num_chunks)]
+
+            
+            with Pool(processes=(int(num_cpus))) as pool:
+                results = pool.starmap(self._process_chunk, chunk_ranges)
+            results =[result for result in results if result is not None]
+
+         
+            global_indices, global_values = zip(*results)
+            global_indices = torch.cat(global_indices, dim=1)
+            global_values = torch.cat(global_values, dim=0)
+            return global_indices, global_values
 
     def evaluate_chunks(self):
         """
@@ -122,7 +183,7 @@ class SparseEvaluation:
         with torch.no_grad():
             self.x = x
             self.chunk_size = chunk_size
-            self.dense_shape = list(x.size())
+            self.dense_shape = list(self.x.size())
             self.device = device
             self.eval_start_index = eval_start_index
             self.conv2d_type = False
@@ -190,7 +251,7 @@ class SparseEvaluation:
                 ).coalesce()
 
                 worker = SparseWorker.remote(worker_sparse_tensor, self.chunk_size, self.mask_coef, self.function, self.dense_shape, chunk_start, self.device)
-                workers.append(worker.evaluate_chunks.remote())
+                workers.append(worker.forward.remote())
 
             results = ray.get(workers)
             global_indices = []
@@ -351,9 +412,7 @@ class SparseWorkerParallel:
         chunk_indices = indices[mask]
         chunk_indices[:, 0] -= chunk_start
         if chunk_indices.size(0) == 0:
-            return torch.tensor(
-            [[]] + [[]] * (len(self.output_size) - 1), dtype=dtyped, device=torch.device('cpu')
-        ),torch.tensor([])
+            return
 
         chunk_values = values[mask]
         chunk_size = chunk_end - chunk_start
@@ -412,6 +471,7 @@ class SparseWorkerParallel:
             
             with Pool(processes=(int(num_cpus))) as pool:
                 results = pool.starmap(self._process_chunk, chunk_ranges)
+            results =[result for result in results if result is not None]
          
             global_indices, global_values = zip(*results)
             global_indices = torch.cat(global_indices, dim=1)
