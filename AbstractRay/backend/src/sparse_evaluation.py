@@ -110,7 +110,7 @@ class SparseWorker:
             return global_indices, global_values
 
     def evaluate_chunks(self):
-        torch.set_num_threads(1)
+        torch.set_num_threads(8)#_num_threads(1)
         """
         Evaluate chunks of the sparse tensor.
 
@@ -345,7 +345,7 @@ class SparseWorkerParallel:
         
 
     def copy(self,indice,indice_in=None):
-        torch.set_num_threads(num_cpus)
+        torch.set_num_threads(8)#_num_threads()
         copy_name = f'copy_{indice}'
         
         if indice_in is None:
@@ -359,7 +359,7 @@ class SparseWorkerParallel:
 
     
     def add(self,indice_1=None,indice_2=None,result_indice=None):
-            torch.set_num_threads(num_cpus)
+            torch.set_num_threads(8)#_num_threads(num_cpus)
             copy_name_1 = f'copy_{indice_1}'
             copy_name_2 = f'copy_{indice_2}'
             if hasattr(self, copy_name_1):
@@ -381,7 +381,7 @@ class SparseWorkerParallel:
 
 
     def sub(self,indice_1=None,indice_2=None,result_indice=None):
-            torch.set_num_threads(num_cpus)
+            torch.set_num_threads(8)#_num_threads(8)
             copy_name_1 = f'copy_{indice_1}'
             copy_name_2 = f'copy_{indice_2}'
             if hasattr(self, copy_name_1):
@@ -442,7 +442,7 @@ class SparseWorkerParallel:
             return add_indices.cpu(), func_output_sparse.values().cpu()
 
     def forward(self,function,mask_epsilon,chunk_size=1,over_copy = False, indice_copy=None):
-        torch.set_num_threads(1)
+        torch.set_num_threads(8)#_num_threads(1)
         self.function = function
         self.mask_epsilon = mask_epsilon
         self.chunk_size = chunk_size
@@ -494,7 +494,7 @@ class SparseWorkerParallel:
             return torch.sum(torch.abs(x),dim=0).coalesce().to_dense()
    
     def evaluate_chunks(self,function,mask_epsilon,chunk_size=1,over_copy = False, indice_copy=None):
-            torch.set_num_threads(1)
+            torch.set_num_threads(8)#_num_threads(1)
 
             self.function = function
             self.mask_epsilon = mask_epsilon
