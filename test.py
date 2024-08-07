@@ -89,10 +89,10 @@ class TestCNN(nn.Module):
 class TestNN(nn.Module):
     def __init__(self):
         super(TestNN,self).__init__()
-        self.fc1 = nn.Linear(in_features=100,out_features=110)
+        self.fc1 = nn.Linear(in_features=1000,out_features=110)
         self.fc1.bias.zero_()
-        self.p1 = torch.randn(100)
-        self.fc2 = nn.Linear(in_features=110,out_features=10)
+        self.p1 = torch.randn(1000)
+        self.fc2 = nn.Linear(in_features=110,out_features=100)
         self.fc2.bias.zero_()
         self.p2 = torch.randn(110)
         # self.conv3 = nn.ConvTranspose2d(in_channels=128,out_channels=64,kernel_size=3)
@@ -117,7 +117,7 @@ class TestNN(nn.Module):
 
 with torch.no_grad():
     model = TestNN()
-    x = torch.randn(100)
+    x = torch.randn(1000)
     time_start = time.time()
     for i in range(100):
         model(x)

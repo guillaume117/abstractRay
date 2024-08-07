@@ -145,7 +145,8 @@ class ModelEvaluator:
                     ["Memory Gain Percentage", f"{layer_evaluation['memory_gain_percentage']:.2f}%"],
                     ["Computation Time", f"{layer_evaluation['computation_time']:.6f} seconds"]
                     ]
-            print(tabulate(table, headers=["Field", "Value"], tablefmt="grid"))
+            if self.verbose :
+                print(tabulate(table, headers=["Field", "Value"], tablefmt="grid"))
             save_results_to_json(self.timestart, self.json_file_prefix, all_results)
         
         all_results['context']['process_ended'] = True

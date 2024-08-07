@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from typing import List, Union, Tuple
 import numpy as np
-
+import time 
 import torch
 import torch.nn as nn
 import copy
@@ -138,7 +138,7 @@ class UnStackNetwork:
                 'epsilon_{}'.format(name): self.copy_with_zero_bias(layer),
                 'noise_{}'.format(name): self.copy_with_abs_weights(layer),
                 'output_dim': self.compute_output_dim(layer, x),
-                'A': self.determine_matrix_linear(self.copy_with_zero_bias(layer))
+                'algebric_representation': self.determine_matrix_linear(self.copy_with_zero_bias(layer))
             }
             return layer(x)
 
@@ -184,7 +184,7 @@ class UnStackNetwork:
                 'epsilon_{}'.format(name): self.copy_with_zero_bias(layer),
                 'noise_{}'.format(name): self.copy_with_abs_weights(layer),
                 'output_dim': self.compute_output_dim(layer, x),
-                'A': self.determine_matrix(lambda y: self.copy_with_zero_bias(layer)(y), x, layer(x))
+                'algebric_representation': self.determine_matrix(lambda y: self.copy_with_zero_bias(layer)(y), x, layer(x))
             }
             return layer(x)
 
@@ -265,7 +265,7 @@ class UnStackNetwork:
                 'epsilon_identity_layer': identity_layer,
                 'noise_identity_layer': identity_layer,
                 'output_dim': self.compute_output_dim(identity_layer, x),
-                'A': self.determine_matrix(lambda y: y, x, x)
+                'algebric_representation': self.determine_matrix(lambda y: y, x, x)
             }
             return identity_layer(x)
 
@@ -370,17 +370,31 @@ class UnStackNetwork:
             indices = torch.empty((2, 0), dtype=torch.long)
             values = torch.empty(0, dtype=m.dtype)
         
-        A_sparse = torch.sparse_coo_tensor(indices, values, (p_out, m_in))
+        algebric_representation_sparse = torch.sparse_coo_tensor(indices, values, (p_out, m_in)).coalesce()
         
-        return A_sparse
+        return algebric_representation_sparse
+    
+
     def determine_matrix_linear(self, function_epsilon):
+        """
+        Determine the representation matrix of a linear function f: R^m -> R^p.
+        In this case, a copy from nn.Linear.weight
+
+        Args:
+            function_epsilon (function): The function representing the layer.
+            m (torch.Tensor): The input tensor.
+            p (torch.Tensor): The output tensor.
+
+        Returns:
+            torch.Tensor: The algebricrepresentation matrix of the function.
+        """
         if isinstance(function_epsilon, nn.Linear):
        
-            return function_epsilon.weight.data
+            return function_epsilon.weight.data.to_sparse_coo()
         elif isinstance(function_epsilon, nn.Sequential):
             for sublayer in function_epsilon:
                 if isinstance(sublayer, nn.Linear):
-                    return sublayer.weight.data    
+                    return sublayer.weight.data.to_sparse_coo()    
 
     def compare_outputs(self, original_output, new_output, layer_name):
         """
@@ -404,7 +418,9 @@ class UnStackNetwork:
 
 
 
-
+"""
+This is the D
+"""
 class DummyCNN(nn.Module):
     
     def __init__(self):
@@ -428,42 +444,17 @@ class DummyCNN(nn.Module):
         return x 
 
 
-
-def determine_matrix(function_epsilon, mask, m, p):
-    """
-    Détermine la matrice de représentation d'une fonction linéaire f: R^m -> R^p.
-    
-    Arguments:
-    m -- dimension de l'espace de départ.
-    p -- dimension de l'espace d'arrivée.
-    
-    Retourne:
-    A -- matrice de représentation de f.
-    """
-    m_in = m.numel()
-    p_out = p.numel()
-    model = lambda x : function_epsilon(mask*x)
-    base_vectors = torch.eye(m_in)
-    A = torch.zeros((p_out, m_in))
-    for i in range(m_in):
-        A[:, i] = model(base_vectors[:, i].unsqueeze(0).view_as(torch.randn(m))).flatten()
-    return A
-
-listA =[]
+list_algebric_evaluation =[]
 
 
-def static_process_linear_layer(abstract_domain, function_center,A,listA):
+def static_process_linear_layer(abstract_domain, function_center,algebric_representation,list_algebric_evaluation):
     """
     Process a linear layer within the abstract domain.
 
     Args:
         abstract_domain (dict): The abstract domain to process.
-        function_center (nn.Module): The function to process the center tensor.
-        function_epsilon (nn.Module): The function to process the epsilon tensor.
-        function_trash (nn.Module): The function to process the trash tensor.
-        num_workers (int): Number of workers for processing.
-        available_RAM (int): Available RAM in GB.
-        device (torch.device): The device to run the processing on.
+        function_center (nn.Module): The function to process the center tensor
+
         add_symbol (bool, optional): Flag to indicate whether to add a symbol. Defaults to True.
 
     Returns:
@@ -476,44 +467,31 @@ def static_process_linear_layer(abstract_domain, function_center,A,listA):
     mask= abstract_domain['mask']
 
     with torch.no_grad():
-        
-        if isinstance(function_center,nn.Sequential):
-            center=center.flatten(start_dim=1)
+
         center = function_center(center)
         sum_abs = torch.zeros_like(center).flatten()
-    
-
-       
-        if A is not None: 
-
-            A_eval = mask.flatten()*A
-        
-            listA =[A_eval@mat for mat in listA]
-            listA.append(A_eval)
-            listAbs = [torch.abs(mat)for mat in listA] 
-        
-            print(len(listA))
-            print(len(abstract_domain['zonotope']))
-            for trash, A in zip(abstract_domain['zonotope'],listAbs):
-                print(trash.size())
-                print(A.size())
-
-                sum_abs +=(A@trash)
-                print("sum abs",sum_abs)
+        if algebric_representation is not None: 
+            A_eval = mask.flatten()*algebric_representation
+            list_algebric_evaluation = [A_eval@mat for mat in list_algebric_evaluation]
+            list_algebric_evaluation.append(algebric_representation)
+            list_algebric_evaluation_absolute = [torch.abs(mat)for mat in list_algebric_evaluation] 
+            for trash, algebric_representation_absolute in zip(abstract_domain['zonotope'],list_algebric_evaluation_absolute):
+                sum_abs += torch.sparse.mm(algebric_representation_absolute, torch.abs(trash).unsqueeze(1)).squeeze()
+            mask = torch.ones_like(mask)
         sum_abs= sum_abs.view_as(center)
-        mask = torch.ones_like(mask)
+        
        
         abstract_domain['center'] = center
         abstract_domain['sum'] = sum_abs
         abstract_domain['trash'] = torch.zeros_like(center)
-        abstract_domain['mask'] = torch.ones_like(center)
+        abstract_domain['mask'] = mask
         abstract_domain['perfect_domain'] = True
   
 
-        return abstract_domain,listA
+        return abstract_domain,list_algebric_evaluation
     
 
-def process_layer(abstract_domain, name, details,listA):
+def process_layer(abstract_domain, name, details,list_algebric_evaluation):
     """
     Process a layer within the abstract domain.
 
@@ -527,20 +505,20 @@ def process_layer(abstract_domain, name, details,listA):
     """
     linear_layer = details.get('original', None)
     activation_layer = details.get('activation', None)
-    A = details.get('A',None)
+    algebric_representation = details.get('algebric_representation',None)
     
     if linear_layer:
         function_center = details['original']
      
    
-        abstract_domain,listA = static_process_linear_layer(
+        abstract_domain,list_algebric_evaluation = static_process_linear_layer(
             abstract_domain,
             function_center=function_center,
-            A=A,
-            listA=listA
+            algebric_representation=algebric_representation,
+            list_algebric_evaluation=list_algebric_evaluation
             )
      
-        return abstract_domain,listA
+        return abstract_domain,list_algebric_evaluation
 
     if activation_layer: 
         class_name = f"Abstract{activation_layer}"
@@ -549,7 +527,7 @@ def process_layer(abstract_domain, name, details,listA):
             abstract_instance = AbstractClass
             abstract_domain = abstract_instance.evaluate(abstract_domain)
         
-            return abstract_domain,listA
+            return abstract_domain,list_algebric_evaluation
         
 
 
@@ -629,23 +607,107 @@ class AbstractReLU(nn.Module):
 
 
 
+"""Here we initialize network and tensor for evaluations"""
 
 model = DummyCNN()
 unstack = UnStackNetwork(model=model,input_dim=(3,28,28))
-print(unstack.output)
-
 x=torch.randn(1,3,28,28)
-for i in range(10):
-    listA =[]
+noise_level = 0.1
+""" 
+Here we test the method with the latent algebric reprsentation of the affine forms 
+"""
+print("Here we test the method with the latent algebric reprsentation of the affine forms")
+
+for i in range(1):
+    list_algebric_evaluation =[]
     abstract_domain = {
-        'zonotope': [0.001*torch.ones_like(x).flatten()],
+        'zonotope': [noise_level*torch.ones_like(x).flatten()],
         'center': x,
         'sum': torch.zeros_like(x),
         'trash': torch.zeros_like(x),
         'mask': torch.ones_like(x),
         'perfect_domain': True
     }
+
+    time_start = time.time()
     for name, details in unstack.output.items():
-        print(name)
-        abstract_domain,listA =process_layer(abstract_domain, name, details,listA) 
+        abstract_domain,list_algebric_evaluation =process_layer(abstract_domain, name, details,list_algebric_evaluation=list_algebric_evaluation) 
+    time_end = time.time()
+
+
+argmax = torch.topk(model(x).squeeze(0), 10).indices
+
+response = {
+    "argmax": argmax.tolist(),
+    "true": model(x).squeeze(0)[argmax].tolist(),
+    "center": abstract_domain['center'].squeeze(0)[argmax].tolist(),
+    "min": (abstract_domain['center'].squeeze(0)[argmax] - abstract_domain['sum'].squeeze(0)[argmax]-abstract_domain['trash'].squeeze(0)[argmax]).tolist(),
+    "max": (abstract_domain['center'].squeeze(0)[argmax] + abstract_domain['sum'].squeeze(0)[argmax]+abstract_domain['trash'].squeeze(0)[argmax]).tolist(),
+    "diff_center_true": torch.max(model(x) - abstract_domain['center']).item()
+}
+
+print("Evaluation Results Algebric representation method:")
+for key, value in response.items():
+    print(f"{key}: {value}")
+print(f"Execution time = {time_end-time_start}")
+print("#"*100)
+
+
+""" 
+Here we test the method with the classical reprsentation of the affine forms 
+"""
+print("Here we test the method with the classical representation of the affine forms")
+
+#Ici on compare les résultas avec la méthode standard d'évaluation
+from AbstractRay.backend.src.zono_sparse_gen import ZonoSparseGeneration
+from AbstractRay.backend.src.evaluator import ModelEvaluator
+from AbstractRay.backend.src.unstack_network import UnStackNetwork
+from AbstractRay.backend.src.util import ensure_ray_initialized
+unstack_network = UnStackNetwork(model, (3,28,28))
+
+zonotope_espilon_sparse_tensor = ZonoSparseGeneration().zono_from_noise_level_and_tensor(noise_level=noise_level, tensor=x)
+abstract_domain = {
+                'zonotope': zonotope_espilon_sparse_tensor,
+                'center': x,
+                'sum': torch.zeros_like(x),
+                'trash': torch.zeros_like(x),
+                'mask': torch.ones_like(x),
+                'perfect_domain': True
+            }
+
+model_evaluator = ModelEvaluator(
+                unstack_network.output,
+                abstract_domain,
+                num_workers=0,
+                available_RAM=1200,
+                device=torch.device('cpu'),
+                add_symbol=True,
+                json_file_prefix='test',
+                noise_level=noise_level,
+                renew_abstract_domain=False,
+                parrallel_rel=False,
+                verbose=False
+            )
+time_start = time.time()
+abstract_domain = model_evaluator.evaluate_model()
+time_end = time.time()
+argmax = torch.topk(model(x).squeeze(0), 10).indices
+
+response = {
+    "argmax": argmax.tolist(),
+    "true": model(x).squeeze(0)[argmax].tolist(),
+    "center": abstract_domain['center'].squeeze(0)[argmax].tolist(),
+    "min": (abstract_domain['center'].squeeze(0)[argmax] - abstract_domain['sum'].squeeze(0)[argmax]-abstract_domain['trash'].squeeze(0)[argmax]).tolist(),
+    "max": (abstract_domain['center'].squeeze(0)[argmax] + abstract_domain['sum'].squeeze(0)[argmax]+abstract_domain['trash'].squeeze(0)[argmax]).tolist(),
+    "diff_center_true": torch.max(model(x) - abstract_domain['center']).item()
+}
+
+print("Evaluation Results classical method:")
+for key, value in response.items():
+    print(f"{key}: {value}")
+print(f"Execution time = {time_end-time_start}")
+print("#"*100)
+print("If the results are the same, that means that you'll have to work a lot for recoding Saimple, good luke guys:)")
+
+
 
