@@ -371,7 +371,7 @@ class UnStackNetwork:
             values = torch.empty(0, dtype=m.dtype)
         
         algebric_representation_sparse = torch.sparse_coo_tensor(indices, values, (p_out, m_in)).coalesce()
-        
+        print(algebric_representation_sparse)
         return algebric_representation_sparse
     
 
@@ -442,6 +442,7 @@ class DummyCNN(nn.Module):
         x = self.relu3(x)
 
         return x 
+    
 
 
 list_algebric_evaluation =[]
@@ -467,17 +468,26 @@ def static_process_linear_layer(abstract_domain, function_center,algebric_repres
     mask= abstract_domain['mask']
 
     with torch.no_grad():
-
+        #ALGO L16:Calculate the center
         center = function_center(center)
         sum_abs = torch.zeros_like(center).flatten()
         if algebric_representation is not None: 
-            A_eval = mask.flatten()*algebric_representation
-            list_algebric_evaluation = [A_eval@mat for mat in list_algebric_evaluation]
+            #ALGO L17-18 For each element of the list LW do18: Multiply it by p ×Wl on left side
+            W_eval = mask.flatten()*algebric_representation.coalesce()
+            list_algebric_evaluation = [(W_eval@mat).coalesce() for mat in list_algebric_evaluation]
+            
+            #ALGO L20 : Add Wl to the list Lw
             list_algebric_evaluation.append(algebric_representation)
+            #ALGO L21 : Create a copy |Lw
             list_algebric_evaluation_absolute = [torch.abs(mat)for mat in list_algebric_evaluation] 
+            #ALGO L22 23 : For each pair of elements stack the sum
+            
             for trash, algebric_representation_absolute in zip(abstract_domain['zonotope'],list_algebric_evaluation_absolute):
+                
                 sum_abs += torch.sparse.mm(algebric_representation_absolute, torch.abs(trash).unsqueeze(1)).squeeze()
+            #ALGO L26 Overwrite p wirh a unit vector of the output dimension
             mask = torch.ones_like(mask)
+           
         sum_abs= sum_abs.view_as(center)
         
        
@@ -679,14 +689,14 @@ model_evaluator = ModelEvaluator(
                 unstack_network.output,
                 abstract_domain,
                 num_workers=0,
-                available_RAM=1200,
+                available_RAM=5,
                 device=torch.device('cpu'),
                 add_symbol=True,
                 json_file_prefix='test',
                 noise_level=noise_level,
                 renew_abstract_domain=False,
                 parrallel_rel=False,
-                verbose=False
+                verbose=True
             )
 time_start = time.time()
 abstract_domain = model_evaluator.evaluate_model()
@@ -707,7 +717,7 @@ for key, value in response.items():
     print(f"{key}: {value}")
 print(f"Execution time = {time_end-time_start}")
 print("#"*100)
-print("If the results are the same, that means that you'll have to work a lot for recoding Saimple, good luke guys:)")
+
 
 
 
