@@ -28,7 +28,7 @@ class ModelEvaluator:
         timestart (float): Start time of the evaluation process.
     """
 
-    def __init__(self, unstacked_model, abstract_domain, num_workers=0, available_RAM=8, device=torch.device('cpu'), add_symbol=True, renew_abstract_domain=False, verbose=False, json_file_prefix='evaluation_results', noise_level=0.00001,model_cut =False,parrallel_rel=True):
+    def __init__(self, unstacked_model, abstract_domain, num_workers=0, available_RAM=8, device=torch.device('cpu'), add_symbol=True, renew_abstract_domain=False, verbose=True, json_file_prefix='evaluation_results', noise_level=0.00001,model_cut =False,parrallel_rel=False):
         """
         Initialize the ModelEvaluator class.
 

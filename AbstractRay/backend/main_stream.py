@@ -1,3 +1,5 @@
+
+
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.gzip import GZipMiddleware
@@ -62,7 +64,7 @@ def load_model(network_file, network_name):
         return models.resnet18(pretrained=True).eval()
     elif network_name == "simplecnn":
         model = SimpleCNN()
-        model_weights_path = './src/CNN/simple_cnn_fashionmnist.pth'
+        model_weights_path = 'backend/src/CNN/simple_cnn_fashionmnist.pth'
         model.load_state_dict(torch.load(model_weights_path))
         model.eval()
         return model
