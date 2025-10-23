@@ -1,16 +1,28 @@
 services:
   abstratray:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
     image: "my-streamlit-app"
     ports:
       - "8000:8000"
     hostname: abstratray
     environment:
-      - BACKEND_URL=http://localhost:8000 
+      - BACKEND_URL=http://abstratray:8000 
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
   streamlit:
     image: "my-streamlit-app_fronted"
+    build:
+      context: ./frontend
     ports:
       - "8501:8501"
       
     hostname: streamlit
     environment:
-      - BACKEND_URL=http://localhost:8000 
+      - BACKEND_URL=http://abstratray:8000 

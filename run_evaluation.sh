@@ -7,7 +7,7 @@ INPUT_IMAGE="./cut_dog.jpeg"
 NETWORK_NAME="vgg16"
 NUM_WORKER=0
 BACK_END="cpu"
-RAM=
+RAM=48
 RESIZE_INPUT="True"
 RESIZE_WIDTH=112    
 RESISE_HEIGHT=112
@@ -15,6 +15,7 @@ BOX_INPUT="False"
 ADD_SYMBOL="True"
 RELEVANCE_DUMP="False"
 LAST_LAYER=4
+PARRALLEL_REL=0
 
 
 NOISE=0.00001
@@ -34,8 +35,10 @@ while (( $(echo "$NOISE <= 0.0001" | bc -l) )); do
         --box_input $BOX_INPUT \
         --add_symbol $ADD_SYMBOL \
         --relevance_dump $RELEVANCE_DUMP\
-        --model_last_layer $LAST_LAYER
-     NOISE=$(echo "$NOISE + 0.00001" | bc)
+        --model_last_layer $LAST_LAYER\
+        --parrallel_rel $PARRALLEL_REL
+
+     NOISE=$(echo "$NOISE + 0.00002" | bc)
 
 done
 NOISE=0.00001
@@ -56,6 +59,8 @@ while (( $(echo "$NOISE <= 0.0001" | bc -l) )); do
         --box_input $BOX_INPUT \
         --add_symbol $ADD_SYMBOL \
         --relevance_dump $RELEVANCE_DUMP\
-        --model_last_layer $LAST_LAYER
-     NOISE=$(echo "$NOISE + 0.00001" | bc)
+        --model_last_layer $LAST_LAYER\
+        --parrallel_rel $PARRALLEL_REL
+
+     NOISE=$(echo "$NOISE + 0.00002" | bc)
 done

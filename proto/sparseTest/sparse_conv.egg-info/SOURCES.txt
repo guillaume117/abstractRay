@@ -1,0 +1,7 @@
+setup.py
+sparse_conv.cpp
+sparse_conv.cu
+sparse_conv.egg-info/PKG-INFO
+sparse_conv.egg-info/SOURCES.txt
+sparse_conv.egg-info/dependency_links.txt
+sparse_conv.egg-info/top_level.txt
